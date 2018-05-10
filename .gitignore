@@ -1,0 +1,13 @@
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+
+# Folders
+Debug
+Release
+.vs
+*.vcxproj
+*.cnf
+*.conf
+*.sln
+*.vcxproj.filters
+*.vcxproj.user
+ReadMe.txt
