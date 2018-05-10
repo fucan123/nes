@@ -128,6 +128,8 @@ public:
 	CPU6502    R;
 	word       DT;
 	word       WT;
+	//已运行周期
+	int        CYCLE;
 	//CPU内存映像, 只能寻址到0xffff
 	byte       MEM[0xffff + 1];
 	byte       PPU[0x7fff + 1];
