@@ -168,8 +168,27 @@ void Cnes_mfcApp::OnDebug()
 }
 
 UINT Cnes_mfcApp::CPURun(LPVOID param) {
-	g_CPU.reset();
-	while(true) {}
+	//一条扫描线时间
+	double line_time = 1 / 50 / 312; //每秒50帧 一帧312条扫描线
+	int line = 0; //第几条扫描线
+	LARGE_INTEGER freq, stime, ctime;
+	QueryPerformanceFrequency(&freq); //获取时钟频率
+	QueryPerformanceCounter(&stime); //113.6825
+	while (true) {
+		QueryPerformanceCounter(&ctime); //当前时间
+		double dim = (double)(ctime.QuadPart - stime.QuadPart) / (double)freq.QuadPart;
+		if (dim >= line_time) {
+			//执行cpu指令 113.6825周期
+			if (line < 240) {
+				//绘制扫描线
+			}
+			else {
+				//VBlank期间
+			}
+			if (++line == 312) //全部312扫描完成
+				line = 0;
+		}
+	}
 	return 0;
 }
 

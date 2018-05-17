@@ -129,8 +129,10 @@ public:
 	CPU6502    R;
 	word       DT;
 	word       WT;
-	//已运行周期
-	int        CYCLE;
+	//指令执行周期
+	int        EXEC_CYCLE;
+	//所有执行周期
+	int        TOTAL_CYCLE;
 	//CPU内存映像, 只能寻址到0xffff
 	byte       MEM[0xffff + 1];
 	byte       PPU[0x7fff + 1];
@@ -160,83 +162,85 @@ public:
 	void load(char*, size_t, char*, size_t);
 	void reset();
 	void run();
+	void exec(int request_cycles);
 
 	byte read(word addr);
 	CPU6502_CODE opcode(byte);
 	byte value(CPU6502_MODE, word* paddr=NULL);
 	void write(word addr, byte value);
 
-	void adc(CPU6502_MODE);
-	void inc(CPU6502_MODE);
-	void inx();
-	void iny();
-	void sbc(CPU6502_MODE);
-	void dec(CPU6502_MODE);
-	void dex();
-	void dey();
-	void and(CPU6502_MODE);
-	void eor(CPU6502_MODE);
-	void ora(CPU6502_MODE);
-	void bit(CPU6502_MODE);
-	void asl(CPU6502_MODE);
-	void lsr(CPU6502_MODE);
-	void rol(CPU6502_MODE);
-	void ror(CPU6502_MODE);
-	void jmp(CPU6502_MODE);
-	void jsr();
-	void rti();
-	void rts();
-	void cmp(CPU6502_MODE);
-	void cpx(CPU6502_MODE);
-	void cpy(CPU6502_MODE);
-	void lda(CPU6502_MODE);
-	void ldx(CPU6502_MODE);
-	void ldy(CPU6502_MODE);
-	void sta(CPU6502_MODE);
-	void stx(CPU6502_MODE);
-	void sty(CPU6502_MODE);
-	void tax();
-	void tay();
-	void tsx();
-	void txa();
-	void txs();
-	void tya();
-	void pha();
-	void php();
-	void pla();
-	void plp();
-	void nop();
+	void ADC(CPU6502_MODE);
+	void INC(CPU6502_MODE);
+	void INX();
+	void INY();
+	void SBC(CPU6502_MODE);
+	void DEC(CPU6502_MODE);
+	void DEX();
+	void DEY();
+	void AND(CPU6502_MODE);
+	void EOR(CPU6502_MODE);
+	void ORA(CPU6502_MODE);
+	void BIT(CPU6502_MODE);
+	void ASL(CPU6502_MODE);
+	void LSR(CPU6502_MODE);
+	void ROL(CPU6502_MODE);
+	void ROR(CPU6502_MODE);
+	void JMP(CPU6502_MODE);
+	void JSR();
+	void RTS();
+	void BRK();
+	void RTI();
+	void CMP(CPU6502_MODE);
+	void CPX(CPU6502_MODE);
+	void CPY(CPU6502_MODE);
+	void LDA(CPU6502_MODE);
+	void LDX(CPU6502_MODE);
+	void LDY(CPU6502_MODE);
+	void STA(CPU6502_MODE);
+	void STX(CPU6502_MODE);
+	void STY(CPU6502_MODE);
+	void TAX();
+	void TAY();
+	void TSX();
+	void TXA();
+	void TXS();
+	void TYA();
+	void PHA();
+	void PHP();
+	void PLA();
+	void PLP();
+	void NOP();
 
-	void inline bcc();
-	void inline bcs();
-	void inline bne();
-	void inline beq();
-	void inline bpl();
-	void inline bmi();
-	void inline bvc();
-	void inline bvs();
-	void inline bjmp(bool jmp=false);
+	void inline BCC();
+	void inline BCS();
+	void inline BNE();
+	void inline BEQ();
+	void inline BPL();
+	void inline BMI();
+	void inline BVC();
+	void inline BVS();
+	void inline BJMP(bool jmp=false);
 	
-	void inline sec(); //设置C进位
-	void inline sez(); //设置Z位结果为0
-	void inline sei(); //设置中断位[禁止中断]
-	void inline sed(); //设置十进制位
-	void inline sev(); //设置溢出位
-	void inline sen(); //设置负数位
+	void inline SEC(); //设置C进位
+	void inline SEZ(); //设置Z位结果为0
+	void inline SEI(); //设置中断位[禁止中断]
+	void inline SED(); //设置十进制位
+	void inline SEV(); //设置溢出位
+	void inline SEN(); //设置负数位
 	
-	void inline clc(); //清掉C进位
-	void inline clz(); //清掉Z位结果不为0
-	void inline cli(); //清掉中断位[接受中断]
-	void inline cld(); //清掉十进制位
-	void inline clv(); //清掉溢出位
-	void inline cln(); //清掉负数位
+	void inline CLC(); //清掉C进位
+	void inline CLZ(); //清掉Z位结果不为0
+	void inline CLI(); //清掉中断位[接受中断]
+	void inline CLD(); //清掉十进制位
+	void inline CLV(); //清掉溢出位
+	void inline CLN(); //清掉负数位
 
-	byte inline gec(); //获得C进位
-	byte inline gez(); //获得Z位结果不为0
-	byte inline gei(); //获得中断位[接受中断]
-	byte inline ged(); //获得十进制位
-	byte inline gev(); //获得溢出位
-	byte inline gen(); //获得负数位
+	byte inline GEC(); //获得C进位
+	byte inline GEZ(); //获得Z位结果不为0
+	byte inline GEI(); //获得中断位[接受中断]
+	byte inline GED(); //获得十进制位
+	byte inline GEV(); //获得溢出位
+	byte inline GEN(); //获得负数位
 
 
 	void setPause(bool);
@@ -244,6 +248,30 @@ public:
 	void setAsmOpStr(const char*);
 	void printAsm();
 	void dumpError();
+	void end() {
+		//一条扫描线时间
+		double line_time = 1 / 50 / 312; //每秒50帧 一帧312条扫描线
+		int line = 0; //第几条扫描线
+		LARGE_INTEGER freq, stime, ctime;
+		QueryPerformanceFrequency(&freq); //获取时钟频率
+		QueryPerformanceCounter(&stime); //113.6825
+		while (true) {
+			QueryPerformanceCounter(&ctime); //当前时间
+			double dim = (double)(ctime.QuadPart - stime.QuadPart) / (double)freq.QuadPart;
+			if (dim >= line_time) {
+				//执行cpu指令 113.6825周期
+				if (line < 240) {
+					//绘制扫描线
+				}
+				else {
+					//VBlank期间
+				}
+				if (++line == 312) //全部312扫描完成
+					line = 0;
+			}
+		}
+
+	}
 	~CPU();
 };
 #endif

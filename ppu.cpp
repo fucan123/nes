@@ -4,7 +4,7 @@
 
 #define VBLANK_FLAG 0x80
 #define SET_VBLANK()   REG[2] |= VBLANK_FLAG
-#define CLEAR_VBLANK() REG[2] &= (~VBLANK_FLAG)
+#define CLR_VBLANK() REG[2] &= (~VBLANK_FLAG)
 
 PPU::PPU() {
 	BGA     = MEM + 0x1000;
@@ -36,7 +36,11 @@ void PPU::load(char* m, size_t size) {
 }
 //¶ÁÈ¡¼Ä´æÆ÷
 byte PPU::readREG(byte addr) {
-	return REG[addr & 0x07];
+	addr &= 0x07;
+	if (addr == 2) //¶Á¶Ë¿Ú2002 vblankÎ»¸´Î»
+		CLR_VBLANK();
+
+	return REG[addr];
 }
 //Ð´Èë¼Ä´æÆ÷
 void PPU::writeREG(byte addr, byte value) {
