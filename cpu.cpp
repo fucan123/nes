@@ -1,5 +1,8 @@
+#pragma once
+
 #include "stdafx.h"
 #include "cpu.h"
+#include "ppu.h"
 
 #ifndef CPUCPP
 #define CPUCPP
@@ -25,7 +28,9 @@
 //出栈
 #define POP()   STACK[++R.S]
 
-CPU::CPU() {
+extern PPU g_PPU;
+
+CPU::CPU( ) {
 	memset(&R, 0, sizeof(CPU6502)); //所有寄存器初始化清0
 	R.S = 0xff; //堆栈指针指向0xff
 	R.P = Z_FLAG | R_FLAG;
@@ -69,10 +74,6 @@ void CPU::run() {
 		//printf("PC:0x%x\n", R.PC);
 		opcode(MEM[R.PC]);
 	}
-}
-
-byte CPU::mapv(word addr) {
-	return MEM[addr & 0xffff];
 }
 
 CPU6502_CODE CPU::opcode(byte opcode) {
@@ -817,12 +818,55 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 		break;
 	}
 	if (CPUSUC(err.code)) {
-		v = MEM[addr];
+		//地址0x2000-0x2007为PPU寄存器
+		if (addr >= 0x2000 && addr <= 0x2007) {
+			//MessageBox(NULL, L"CAO", L"t", MB_OK);
+			v = g_PPU.readREG(addr);
+		}
+		else if (addr == 0x4000) {
+
+		}
+		else {
+			//CPU内存段
+			v = MEM[addr];
+		}
 		if (paddr != NULL)
 			*paddr = addr;
 	}
 	dumpError();
 	return v;
+}
+
+//读取
+byte CPU::read(word addr) {
+	//地址0x2000-0x2007为PPU寄存器
+	if (addr >= 0x2000 && addr <= 0x2007) {
+		//MessageBox(NULL, L"PPU READ", L"title", MB_OK);
+		return g_PPU.readREG(addr & 0x07);
+	}
+	else if (addr == 0x4010) {
+		return 0;
+	}
+	else {
+		return MEM[addr & 0xffff];
+	}
+}
+
+//向地址写入值
+void CPU::write(word addr, byte value) {
+	//地址0x2000-0x2007为PPU寄存器
+	if (addr >= 0x2000 && addr <= 0x2007) {
+		CString t;
+		t.Format(L"WRITE:%d", value);
+		//MessageBox(NULL, t, L"title", MB_OK);
+		g_PPU.writeREG(addr & 0x07, value);
+	}
+	else if (addr == 0x4010) {
+
+	}
+	else {
+		MEM[addr] = value;
+	}
 }
 /* ADC (NV----ZC) */
 void CPU::adc(CPU6502_MODE mode) {
@@ -830,6 +874,7 @@ void CPU::adc(CPU6502_MODE mode) {
 	DT = this->value(mode); //获得要累加的值
 	if (CPUSUC(err.code)) { //指令有效
 		//A + M + C -> A
+		sprintf(remark, "寄存器A+0x%02x+0x%02x", DT, R.P & C_FLAG);
 		WT = R.A + DT + (R.P & C_FLAG);				
 		TST_FLAG(WT > 0xFF, C_FLAG);				
 		TST_FLAG(((~(R.A^DT))&(R.A^WT) & 0x80), V_FLAG);
@@ -845,15 +890,17 @@ void CPU::inc(CPU6502_MODE mode) {
 	DT = this->value(mode, &addr); //获得要累加的值
 	if (CPUSUC(err.code)) { //指令有效
 		//M + 1 -> M
+		sprintf(remark, "0x%02x+1", DT);
 		DT++;
 		//结果写入地址中
-		MEM[addr] = (byte)DT;
+		this->write(addr, (byte)DT);
 		SET_ZN_FLAG(DT);
 	}
 }
 /* INX (N-----Z-) */
 void CPU::inx() {
 	this->setAsmOpStr("INX");
+	sprintf(remark, "寄存器X+1");
 	//X + 1 -> X
 	R.X++;
 	SET_ZN_FLAG(R.X);
@@ -862,6 +909,7 @@ void CPU::inx() {
 /* INY (N-----Z-) */
 void CPU::iny() {
 	this->setAsmOpStr("INY");
+	sprintf(remark, "寄存器Y+1");
 	//Y + 1 -> Y
 	R.Y++;
 	SET_ZN_FLAG(R.Y);
@@ -871,6 +919,7 @@ void CPU::iny() {
 void CPU::sbc(CPU6502_MODE mode) {
 	this->setAsmOpStr("SBC");
 	DT = this->value(mode);
+	sprintf(remark, "寄存器A-0x%02x-0x%02x", DT, (~R.P) & C_FLAG);
 	//需要向C借位
 	WT = R.A - DT - ((~R.P) & C_FLAG);
 	TST_FLAG(((R.A^DT) & (R.A^WT) & 0x80), V_FLAG);
@@ -885,15 +934,17 @@ void CPU::dec(CPU6502_MODE mode) {
 	DT = this->value(mode, &addr); //获得要减的值
 	if (CPUSUC(err.code)) { //指令有效
 		//M - 1 -> M
+		sprintf(remark, "%d-1", DT);
 		DT--;
 		//结果写入地址中
-		MEM[addr] = (byte)DT;
+		this->write(addr, (byte)DT);
 		SET_ZN_FLAG(DT);
 	}
 }
 /* DEX (N-----Z-) */
 void CPU::dex() {
 	this->setAsmOpStr("DEX");
+	sprintf(remark, "寄存器X-1");
 	R.X--;
 	SET_ZN_FLAG(R.X);
 	opsize = 1;
@@ -901,6 +952,7 @@ void CPU::dex() {
 /* DEX (N-----Z-) */
 void CPU::dey() {
 	this->setAsmOpStr("DEY");
+	sprintf(remark, "寄存器Y-1");
 	R.Y--;
 	SET_ZN_FLAG(R.Y);
 	opsize = 1;
@@ -909,6 +961,7 @@ void CPU::dey() {
 void CPU::and(CPU6502_MODE mode) {
 	this->setAsmOpStr("AND");
 	DT = this->value(mode);
+	sprintf(remark, "寄存器A&0x%02x", DT);
 	R.A &= DT;
 	SET_ZN_FLAG(R.A);
 }
@@ -916,6 +969,7 @@ void CPU::and(CPU6502_MODE mode) {
 void CPU::eor(CPU6502_MODE mode) {
 	this->setAsmOpStr("EOR");
 	DT = this->value(mode);
+	sprintf(remark, "寄存器A^0x%02x", DT);
 	R.A ^= DT;
 	SET_ZN_FLAG(R.A);
 }
@@ -923,6 +977,7 @@ void CPU::eor(CPU6502_MODE mode) {
 void CPU::ora(CPU6502_MODE mode) {
 	this->setAsmOpStr("ORA");
 	DT = this->value(mode);
+	sprintf(remark, "寄存器A|%d", DT);
 	R.A |= DT;
 	SET_ZN_FLAG(R.A);
 }
@@ -930,6 +985,7 @@ void CPU::ora(CPU6502_MODE mode) {
 void CPU::asl(CPU6502_MODE mode) {
 	this->setAsmOpStr("ASL");
 	if (mode == M_A) { //累加器A操作
+		sprintf(remark, "寄存器A左移一位");
 		TST_FLAG(R.A & 0x80, C_FLAG);
 		R.A <<= 1;
 		SET_ZN_FLAG(R.A);
@@ -937,9 +993,10 @@ void CPU::asl(CPU6502_MODE mode) {
 	else {
 		word addr;
 		DT = this->value(mode, &addr);
+		sprintf(remark, "0x%02x左移一位", DT);
 		TST_FLAG(DT & 0x80, C_FLAG);
 		DT <<= 1;
-		MEM[addr] = (byte)DT;
+		this->write(addr, (byte)DT);
 		SET_ZN_FLAG(DT);
 	}
 }
@@ -947,6 +1004,7 @@ void CPU::asl(CPU6502_MODE mode) {
 void CPU::lsr(CPU6502_MODE mode) {
 	this->setAsmOpStr("LSR");
 	if (mode == M_A) { //累加器A操作
+		sprintf(remark, "寄存器A右移一位");
 		TST_FLAG(R.A & 0x01, C_FLAG);
 		R.A >>= 1;
 		SET_ZN_FLAG(R.A);
@@ -954,9 +1012,10 @@ void CPU::lsr(CPU6502_MODE mode) {
 	else {
 		word addr;
 		DT = this->value(mode, &addr);
+		sprintf(remark, "0x%02x右移一位", DT);
 		TST_FLAG(DT & 0x01, C_FLAG);
 		DT >>= 1;
-		MEM[addr] = (byte)DT;
+		this->write(addr, (byte)DT);
 		SET_ZN_FLAG(DT);
 	}
 }
@@ -964,6 +1023,7 @@ void CPU::lsr(CPU6502_MODE mode) {
 void CPU::rol(CPU6502_MODE mode) {
 	this->setAsmOpStr("ROL");
 	if (mode == M_A) { //累加器A操作
+		sprintf(remark, "寄存器A循环左移一位");
 		if (R.P & C_FLAG) { //C位也参与移位
 			TST_FLAG(R.A & 0x80, C_FLAG);
 			R.A = (R.A << 1) | 0x01;
@@ -977,6 +1037,7 @@ void CPU::rol(CPU6502_MODE mode) {
 	else {
 		word addr;
 		DT = this->value(mode, &addr);
+		sprintf(remark, "0x%02x循环左移一位", DT);
 		if (R.P & C_FLAG) { //C位也参与移位 补最后位
 			TST_FLAG(DT & 0x80, C_FLAG);
 			DT = (DT << 1) | 0x01;
@@ -985,7 +1046,7 @@ void CPU::rol(CPU6502_MODE mode) {
 			TST_FLAG(R.A & 0x80, C_FLAG);
 			DT <<= 1;;
 		}
-		MEM[addr] = (byte)DT;
+		this->write(addr, (byte)DT);
 		SET_ZN_FLAG(DT);
 	}
 }
@@ -993,6 +1054,7 @@ void CPU::rol(CPU6502_MODE mode) {
 void CPU::ror(CPU6502_MODE mode) {
 	this->setAsmOpStr("ROR");
 	if (mode == M_A) { //累加器A操作
+		sprintf(remark, "寄存器A循环右移一位");
 		if (R.P & C_FLAG) { //C位也参与移位
 			TST_FLAG(R.A & 0x01, C_FLAG);
 			R.A = (R.A >> 1) | 0x80;
@@ -1006,6 +1068,7 @@ void CPU::ror(CPU6502_MODE mode) {
 	else {
 		word addr;
 		DT = this->value(mode, &addr);
+		sprintf(remark, "0x%02x循环右移一位", DT);
 		if (R.P & C_FLAG) { //C位也参与移位 补最后位
 			TST_FLAG(DT & 0x01, C_FLAG);
 			DT = (DT >> 1) | 0x80;
@@ -1014,7 +1077,7 @@ void CPU::ror(CPU6502_MODE mode) {
 			TST_FLAG(R.A & 0x01, C_FLAG);
 			DT <<= 1;;
 		}
-		MEM[addr] = (byte)DT;
+		this->write(addr, (byte)DT);
 		SET_ZN_FLAG(DT);
 	}
 }
@@ -1022,24 +1085,29 @@ void CPU::ror(CPU6502_MODE mode) {
 void CPU::bit(CPU6502_MODE mode) {
 	this->setAsmOpStr("BIT");
 	DT = this->value(mode);
+	sprintf(remark, "BIT-0x%02x", DT);
 	TST_FLAG((DT&R.A) == 0, Z_FLAG);
 	TST_FLAG(DT & 0x80, N_FLAG);
 	TST_FLAG(DT & 0x40, V_FLAG);
 }
 void CPU::jmp(CPU6502_MODE mode) {
 	this->setAsmOpStr("JMP");
+	sprintf(remark, "跳转");
 	word v = this->value(mode);
 }
 void CPU::jsr() {
 	this->setAsmOpStr("JSR");
+	sprintf(remark, "转子程序");
 	opsize = 1;
 }
 void CPU::rti() {
 	this->setAsmOpStr("RTI");
+	sprintf(remark, "中断返回");
 	opsize = 1;
 }
 void CPU::rts() {
 	this->setAsmOpStr("RTS");
+	sprintf(remark, "子程序返回");
 	opsize = 1;
 }
 /* CMP (N-----ZC) */
@@ -1047,6 +1115,7 @@ void CPU::cmp(CPU6502_MODE mode) {
 	this->setAsmOpStr("CMP");
 	DT = this->value(mode);
 	WT = (word)R.A - (word)DT;
+	sprintf(remark, "比较 0x%02x-0x%02x", R.A, DT);
 	TST_FLAG((WT & 0x8000) == 0, C_FLAG);
 	SET_ZN_FLAG((byte)WT);
 }
@@ -1055,6 +1124,7 @@ void CPU::cpx(CPU6502_MODE mode) {
 	this->setAsmOpStr("CPX");
 	DT = this->value(mode);
 	WT = (word)R.X - (word)DT;
+	sprintf(remark, "比较 0x%02x-0x%02x", R.X, DT);
 	TST_FLAG((WT & 0x8000) == 0, C_FLAG);
 	SET_ZN_FLAG((byte)WT);
 }
@@ -1063,6 +1133,7 @@ void CPU::cpy(CPU6502_MODE mode) {
 	this->setAsmOpStr("CPY");
 	DT = this->value(mode);
 	WT = (word)R.Y - (word)DT;
+	sprintf(remark, "比较 0x%02x-0x%02x", R.Y, DT);
 	TST_FLAG((WT & 0x8000) == 0, C_FLAG);
 	SET_ZN_FLAG((byte)WT);
 }
@@ -1070,9 +1141,12 @@ void CPU::cpy(CPU6502_MODE mode) {
 void CPU::lda(CPU6502_MODE mode) {
 	this->setAsmOpStr("LDA");
 	DT = this->value(mode);
+	sprintf(remark, "装载到寄存器A");
 	if (CPUSUC(err.code)) { //指令有效
 		//M -> A
-		//::MessageBoxW(NULL, L"A", L"Title", MB_OK);
+		CString t;
+		t.Format(L"DT:%d", DT);
+		//::MessageBoxW(NULL, t, L"Title", MB_OK);
 		R.A = DT;
 		SET_ZN_FLAG(R.A);
 	}
@@ -1080,6 +1154,7 @@ void CPU::lda(CPU6502_MODE mode) {
 /* LDX (N-----Z-) */
 void CPU::ldx(CPU6502_MODE mode) {
 	this->setAsmOpStr("LDX");
+	sprintf(remark, "装载到寄存器X");
 	DT = this->value(mode);
 	if (CPUSUC(err.code)) { //指令有效
 		//M -> X
@@ -1090,6 +1165,7 @@ void CPU::ldx(CPU6502_MODE mode) {
 /* LDY (N-----Z-) */
 void CPU::ldy(CPU6502_MODE mode) {
 	this->setAsmOpStr("LDY");
+	sprintf(remark, "装载到寄存器Y");
 	DT = this->value(mode);
 	if (CPUSUC(err.code)) { //指令有效
 		//M -> Y
@@ -1102,25 +1178,29 @@ void CPU::sta(CPU6502_MODE mode) {
 	this->setAsmOpStr("STA");
 	word addr;
 	DT = this->value(mode, &addr);
-	MEM[addr] = R.A;
+	sprintf(remark, "寄存器A->地址0x%04x", addr);
+	this->write(addr, R.A);
 }
 /* STX (--------) */
 void CPU::stx(CPU6502_MODE mode) {
 	this->setAsmOpStr("STX");
 	word addr;
 	DT = this->value(mode, &addr);
-	MEM[addr] = R.X;
+	sprintf(remark, "寄存器X->地址0x%04x", addr);
+	this->write(addr, R.X);
 }
 /* STY (--------) */
 void CPU::sty(CPU6502_MODE mode) {
 	this->setAsmOpStr("STY");
 	word addr;
 	DT = this->value(mode, &addr);
-	MEM[addr] = R.Y;
+	sprintf(remark, "寄存器Y->地址0x%04x", addr);
+	this->write(addr, R.Y);
 }
 /* TAX (N-----Z-) */
 void CPU::tax() {
 	this->setAsmOpStr("TAX");
+	sprintf(remark, "寄存器A->X");
 	R.X = R.A;
 	SET_ZN_FLAG(R.X);
 	opsize = 1;
@@ -1128,6 +1208,7 @@ void CPU::tax() {
 /* TAY (N-----Z-) */
 void CPU::tay() {
 	this->setAsmOpStr("TAY");
+	sprintf(remark, "寄存器A->Y");
 	R.Y = R.A;
 	SET_ZN_FLAG(R.Y);
 	opsize = 1;
@@ -1135,6 +1216,7 @@ void CPU::tay() {
 /* TSX (N-----Z-) */
 void CPU::tsx() {
 	this->setAsmOpStr("TSX");
+	sprintf(remark, "寄存器S->X");
 	R.X = R.S;
 	SET_ZN_FLAG(R.X);
 	opsize = 1;
@@ -1142,6 +1224,7 @@ void CPU::tsx() {
 /* TXA (N-----Z-) */
 void CPU::txa() {
 	this->setAsmOpStr("TXA");
+	sprintf(remark, "寄存器X->A");
 	R.A = R.X;
 	SET_ZN_FLAG(R.A);
 	opsize = 1;
@@ -1149,6 +1232,7 @@ void CPU::txa() {
 /* TXS (N-----Z-) */
 void CPU::txs() {
 	this->setAsmOpStr("TXS");
+	sprintf(remark, "寄存器X->S");
 	R.S = R.X;
 	SET_ZN_FLAG(R.S);
 	opsize = 1;
@@ -1156,6 +1240,7 @@ void CPU::txs() {
 /* TYA (N-----Z-) */
 void CPU::tya() {
 	this->setAsmOpStr("TYA");
+	sprintf(remark, "寄存器Y->A");
 	R.A = R.Y;
 	SET_ZN_FLAG(R.A);
 	opsize = 1;
@@ -1163,6 +1248,7 @@ void CPU::tya() {
 //C位为0 跳转
 void CPU::bcc() {
 	this->setAsmOpStr("BCC");
+	sprintf(remark, "跳转 C位为0");
 	if (!(R.P & C_FLAG)) {
 		this->bjmp();
 	}
@@ -1171,6 +1257,7 @@ void CPU::bcc() {
 //C位为1 跳转
 void CPU::bcs() {
 	this->setAsmOpStr("BCS");
+	sprintf(remark, "跳转 C位不为0");
 	if ((R.P & C_FLAG)) {
 		this->bjmp();
 	}
@@ -1179,32 +1266,37 @@ void CPU::bcs() {
 //Z位为0 跳转
 void CPU::bne() {
 	this->setAsmOpStr("BNE");
+	sprintf(remark, "跳转 Z位为0");
 	this->bjmp(!(R.P & Z_FLAG));
 }
 //Z位为1 跳转
 void CPU::beq() {
 	this->setAsmOpStr("BEQ");
+	sprintf(remark, "跳转 C位不为0");
 	this->bjmp((R.P & Z_FLAG));
 }
 //N位为0 跳转
 void CPU::bpl() {
 	this->setAsmOpStr("BPL");
-	printf("P:%X, MEM:%X\n", R.P, MEM[0x2002]);
+	sprintf(remark, "跳转 N位为0");
 	this->bjmp(!(R.P & N_FLAG));
 }
 //N位为1 跳转
 void CPU::bmi() {
 	this->setAsmOpStr("BMI");
+	sprintf(remark, "跳转 N位不为0");
 	this->bjmp((R.P & N_FLAG));
 }
 //V位为0 跳转
 void CPU::bvc() {
 	this->setAsmOpStr("BVC");
+	sprintf(remark, "跳转 V位为0");
 	this->bjmp(!(R.P & V_FLAG));
 }
 //v位为1 跳转
 void CPU::bvs() {
 	this->setAsmOpStr("BVS");
+	sprintf(remark, "跳转 V位不为0");
 	this->bjmp((R.P & V_FLAG));
 }
 //条件跳转
@@ -1214,24 +1306,26 @@ void CPU::bjmp(bool jmp) {
 	word a = R.PC;
 	if (jmp) {
 		R.PC = R.PC + (sbyte)addr;
-		printf("R.PC:%X, DT:%X\n", R.PC, addr);
 	}
 }
 // PHA A入栈
 void CPU::pha() {
 	this->setAsmOpStr("PHA");
+	sprintf(remark, "寄存器A入栈");
 	PUSH(R.A);
 	opsize = 1;
 }
 // PHP P入栈
 void CPU::php() {
 	this->setAsmOpStr("PHP");
+	sprintf(remark, "标志器P入栈");
 	PUSH(R.P | B_FLAG);
 	opsize = 1;
 }
 // PLA (N-----Z-) 出栈入A
 void CPU::pla() {
 	this->setAsmOpStr("PLA");
+	sprintf(remark, "出栈到寄存器A");
 	R.A = POP();
 	SET_ZN_FLAG(R.A);
 	opsize = 1;
@@ -1239,17 +1333,20 @@ void CPU::pla() {
 // PLP 出栈入P
 void CPU::plp() {
 	this->setAsmOpStr("PLP");
+	sprintf(remark, "出栈到标志器P");
 	R.P = POP() | R_FLAG;
 	opsize = 1;
 }
 void CPU::nop() {
 	this->setAsmOpStr("NOP");
+	sprintf(remark, "空转");
 	opsize = 1;
 }
 //设置C进位
 void CPU::sec() { 
 	R.P |= 0x01;
 	this->setAsmOpStr("SEC");
+	sprintf(remark, "设置C位 进位位");
 	opsize = 1;
 }
 //设置Z位结果为0
@@ -1260,12 +1357,14 @@ void CPU::sez() {
 void CPU::sei() { 
 	R.P |= 0x04; 
 	this->setAsmOpStr("SEI");
+	sprintf(remark, "设置I位 中断位");
 	opsize = 1;
 }
 //设置十进制位
 void CPU::sed() { 
 	R.P |= 0x08;
 	this->setAsmOpStr("SED");
+	sprintf(remark, "设置D位 十进制位");
 	opsize = 1;
 }
 //设置溢出位
@@ -1277,6 +1376,7 @@ void CPU::sen() { R.P |= 0x80; }
 void CPU::clc() { 
 	R.P &= 0xfe;
 	this->setAsmOpStr("CLC");
+	sprintf(remark, "清除C位 进位位");
 	opsize = 1;
 }
 //清掉Z位结果不为0
@@ -1285,18 +1385,21 @@ void CPU::clz() { R.P &= 0xfd; }
 void CPU::cli() { 
 	R.P &= 0xfb;
 	this->setAsmOpStr("CLI");
+	sprintf(remark, "清除I位 中断位");
 	opsize = 1;
 }
 //清掉十进制位
 void CPU::cld() { 
 	R.P &= 0xf7;
 	this->setAsmOpStr("CLD");
+	sprintf(remark, "清除D位 十进制位");
 	opsize = 1;
 }
 //清掉溢出位
 void CPU::clv() { 
 	R.P &= 0xbf; 
 	this->setAsmOpStr("CLV");
+	sprintf(remark, "清除V位 溢出位");
 	opsize = 1;
 }
 //清掉负数位
@@ -1338,7 +1441,7 @@ void CPU::setAsmOpStr(const char* str) {
 
 void CPU::printAsm() {
 	if (clist) {
-		CString ra, hs(hex_str), as(asm_str);
+		CString ra, hs(hex_str), as(asm_str), rms(remark);
 		
 		ra.Format(L"%X:", run_addr);
 		//as.Format(L"%s", "fuck");
@@ -1348,6 +1451,7 @@ void CPU::printAsm() {
 		clist->InsertItem(row, ra); //一定要先这样调用后面才显示
 		clist->SetItemText(row, 1, hs);
 		clist->SetItemText(row, 2, as);
+		clist->SetItemText(row, 3, rms);
 		clist->EnsureVisible(row, FALSE); //滚动到底部
 		/*******显示寄存器值*****/
 		CString rs;

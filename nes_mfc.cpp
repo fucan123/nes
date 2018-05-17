@@ -141,7 +141,8 @@ BOOL Cnes_mfcApp::InitInstance()
 
 	g_CPU.load(m, 0xffff, m + header.rom_count * 0x4000, 0x2000);
 	g_PPU.load(m + header.rom_count * 0x4000, 0x2000);
-	g_CPU.reset();
+	AfxBeginThread(CPURun, this);
+	AfxBeginThread(PPURun, this);
 	return TRUE;
 }
 
@@ -164,4 +165,14 @@ void Cnes_mfcApp::OnDebug()
 	dlgdbg = new CDebugDlg();
 	((CDebugDlg*)dlgdbg)->Create(IDD_ABOUTBOX);//创建一个非模态对话框    IDD_DIALOG2是我创建的一对话框ID
 	((CDebugDlg*)dlgdbg)->ShowWindow(SW_SHOWNORMAL);//显示非模态对话框
+}
+
+UINT Cnes_mfcApp::CPURun(LPVOID param) {
+	g_CPU.reset();
+	while(true) {}
+	return 0;
+}
+
+UINT Cnes_mfcApp::PPURun(LPVOID param) {
+	return 0;
 }

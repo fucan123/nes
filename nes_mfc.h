@@ -33,6 +33,8 @@ public:
 	afx_msg void OnAppAbout();
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnDebug();
+	static UINT CPURun(LPVOID param);
+	static UINT PPURun(LPVOID param);
 };
 
 extern Cnes_mfcApp theApp;

@@ -5,6 +5,9 @@
 
 class PPU {
 public:
+	//寄存器
+	byte REG[8];
+
 	//所有PPU内存
 	byte  MEM[0x7fff + 1];
 
@@ -31,6 +34,11 @@ public:
 	PPU();
 	//装载卡带图形数据
 	void load(char*, size_t);
+	//读取寄存器
+	byte readREG(byte addr);
+	//写入寄存器
+	void writeREG(byte addr, byte value);
+	//绘制背景
 	void showBG();
 	//绘制一条扫描线(分辨率256*240，一共240条) line=要绘制的线编号
 	void inline scanfLine(byte line);

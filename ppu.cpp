@@ -2,6 +2,10 @@
 #include "stdafx.h"
 #include "ppu.h"
 
+#define VBLANK_FLAG 0x80
+#define SET_VBLANK()   REG[2] |= VBLANK_FLAG
+#define CLEAR_VBLANK() REG[2] &= (~VBLANK_FLAG)
+
 PPU::PPU() {
 	BGA     = MEM + 0x1000;
 	SPRA    = MEM + 0x0000;
@@ -30,12 +34,21 @@ void PPU::load(char* m, size_t size) {
 	memset(MEM, 0, 0x8000);
 	memcpy(MEM, m, size);
 }
+//读取寄存器
+byte PPU::readREG(byte addr) {
+	return REG[addr & 0x07];
+}
+//写入寄存器
+void PPU::writeREG(byte addr, byte value) {
+	REG[addr & 0x07] = value;
+}
 
 void PPU::showBG() {
 	//逐行绘制(分辨率256*240，240行)
 	for (int i = 0; i < 240; i++) {
 		this->scanfLine(i);
 	}
+	SET_VBLANK();
 	/*
 	CPen pen(PS_SOLID, 1, RGB(0, 0, 0));//创建一个虚线线条，宽度为1，红色的画笔对象  
 	CPen* pOldPen = dc->SelectObject(&pen);//将画笔对象选入到设备描述表中 

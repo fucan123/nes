@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <iostream>
+#include "ppu.h"
 
 #ifndef CPUH
 #define CPUH
@@ -146,6 +147,7 @@ public:
 	word  run_addr;
 	char  hex_str[8];
 	char  asm_str[64];
+	char  remark[64];
 public:
 	CListCtrl* clist;
 	HWND       dbgdlg;
@@ -159,9 +161,10 @@ public:
 	void reset();
 	void run();
 
-	byte mapv(word addr);
+	byte read(word addr);
 	CPU6502_CODE opcode(byte);
 	byte value(CPU6502_MODE, word* paddr=NULL);
+	void write(word addr, byte value);
 
 	void adc(CPU6502_MODE);
 	void inc(CPU6502_MODE);

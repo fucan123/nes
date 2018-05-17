@@ -7,6 +7,7 @@
 
 extern int CStringHexToInt(CString str);
 extern CPU g_CPU;
+extern PPU g_PPU;
 
 class CDebugDlg : public CDialogEx
 {
@@ -68,8 +69,8 @@ BOOL CDebugDlg::OnInitDialog()
 	m_list.SetExtendedStyle(dwStyle);
 	m_list.InsertColumn(0, L"地址", LVCFMT_LEFT, 50);
 	m_list.InsertColumn(1, _T("16进制码"), LVCFMT_LEFT, 80);
-	m_list.InsertColumn(2, _T("指令"), LVCFMT_LEFT, 108);
-	m_list.InsertColumn(3, _T("注释"), LVCFMT_LEFT, 168);
+	m_list.InsertColumn(2, _T("指令"), LVCFMT_LEFT, 120);
+	m_list.InsertColumn(3, _T("注释"), LVCFMT_LEFT, 153);
 
 	g_CPU.dbgdlg = this->m_hWnd;
 	g_CPU.clist = &m_list;
@@ -121,7 +122,7 @@ void CDebugDlg::OnOK() {
 				if (addr[index].GetLength() > 0) {
 					int addr_i = CStringHexToInt(addr[i]);
 					CString t;
-					t.Format(L"0x%04X:0x%02X ", addr_i, g_CPU.mapv(addr_i));
+					t.Format(L"0x%04X:0x%02X ", addr_i, g_CPU.read(addr_i));
 					str += t;
 				}
 			}
