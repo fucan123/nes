@@ -14,8 +14,16 @@
 #define	V_FLAG		0x40		// 溢出
 #define	N_FLAG		0x80		// 正负数
 
-#define ZERO_CYCLE(n) CYCLE = 0
-#define ADD_CYCLE(n)  CYCLE += (n)
+#define NMI_VECTOR  0xFFFA       // NMI执行的地址位置
+#define REST_VECTOR 0xFFFC       // REST执行的地址位置
+#define IRQ_VECTOR  0xFFFE       // 中断执行的地址位置
+
+#define ZERO_CYCLE()  EXEC_CYCLE = 0
+#define ADD_CYCLE(V)  EXEC_CYCLE += (V)
+// 设置标志位
+#define SET_FLAG(V) { R.P |= (V); }
+// 清除标志位
+#define CLR_FLAG(V) { R.P &= ~(V); }
 // 设置ZN标志位
 #define	SET_ZN_FLAG(V)	{ R.P &= ~(Z_FLAG|N_FLAG); if((V)==0){ R.P |= Z_FLAG; } if((V)>0x7f){ R.P |= N_FLAG; } }
 // 条件成立，设置标志位
@@ -46,7 +54,7 @@ void CPU::load(char* m, size_t size, char* p, size_t psize) {
 
 void CPU::reset() {
 	//REST（开机或复位）会在0xfffc和0xfffd此地址指向的空间寻找指令（0xfffc为低8位，0xfffd为高8位）
-	word opaddr = MEM[0xfffc] | (MEM[0xfffd] << 8);
+	word opaddr = MEM[REST_VECTOR] | (MEM[REST_VECTOR + 1] << 8);
 	R.PC = opaddr;
 	//run();
 	//::MessageBox(NULL, pc, L"title", MB_OK);
@@ -70,6 +78,16 @@ void CPU::run() {
 		opcode(MEM[R.PC]);
 	}
 }
+//执行 request_cycles要执行的周期
+void CPU::exec(int request_cycles) {
+	int exec_cycles;
+	while (request_cycles > 0) {
+		ZERO_CYCLE();
+		this->opcode(MEM[R.PC]);
+		request_cycles -= EXEC_CYCLE;
+		TOTAL_CYCLE += EXEC_CYCLE;
+	}
+}
 
 byte CPU::mapv(word addr) {
 	return MEM[addr & 0xffff];
@@ -82,628 +100,628 @@ CPU6502_CODE CPU::opcode(byte opcode) {
 	opsize = 0;
 	switch (opcode) {
 	case 0x00: //BRK 中断
-		this->bit(M_ZERO);
+		this->BRK();
 		ADD_CYCLE(7);
 		break;
 	case 0x69: //ADC #0x2B 累加器A+0x2B+C位 2字节
-		this->adc(M_Q);
+		this->ADC(M_Q);
 		ADD_CYCLE(2);
 		break;
 	case 0x65: //ADC 0x2B 零页 2字节
-		this->adc(M_ZERO);
+		this->ADC(M_ZERO);
 		ADD_CYCLE(3);
 		opcode += 2;
 		break;
 	case 0x75: //ADC 0x2B,X 零页X 2字节
-		this->adc(M_X_ZERO);
+		this->ADC(M_X_ZERO);
 		ADD_CYCLE(4);
 		break;
 	case 0x6D: //ADC 0x002B 绝对 3字节
-		this->adc(M_ABS);
+		this->ADC(M_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0x7D: //ADC 0x002B,X 绝对X 3字节
-		this->adc(M_X_ABS);
+		this->ADC(M_X_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0x79: //ADC 0x002B,Y 绝对Y 3字节
-		this->adc(M_Y_ABS);
+		this->ADC(M_Y_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0x61: //ADC (0x2B,X) 变址X间接 2字节
-		this->adc(M_X_IDA);
+		this->ADC(M_X_IDA);
 		ADD_CYCLE(6);
 		break;
 	case 0x71: //ADC (0x2B),Y 间接变址Y 2字节
-		this->adc(M_IDA_Y);
+		this->ADC(M_IDA_Y);
 		ADD_CYCLE(5);
 		break;
 	case 0xE6: //INC 0x2B 零页 2字节
-		this->inc(M_ZERO);
+		this->INC(M_ZERO);
 		ADD_CYCLE(5);
 		break;
 	case 0xF6: //INC 0x2B,X 零页X 2字节
-		this->inc(M_X_ZERO);
+		this->INC(M_X_ZERO);
 		ADD_CYCLE(6);
 		break;
 	case 0xEE: //INC 0x002B 绝对 3字节
-		this->inc(M_ABS);
+		this->INC(M_ABS);
 		ADD_CYCLE(6);
 		break;
 	case 0xFE: //INC 0x002B,X 绝对X 3字节
-		this->inc(M_X_ABS);
+		this->INC(M_X_ABS);
 		ADD_CYCLE(7);
 		break;
 	case 0xE8: //INX 1字节
-		this->inx();
+		this->INX();
 		ADD_CYCLE(2);
 		break;
 	case 0xC8: //INY 1字节
-		this->iny();
+		this->INY();
 		ADD_CYCLE(2);
 		break;
 	case 0xE9: //SBC #0x2B 累加器A-0x2B-C位 2字节
-		this->sbc(M_Q); ADD_CYCLE(2);
+		this->SBC(M_Q); ADD_CYCLE(2);
 		break;
 	case 0xE5: //SBC 0x2B 零页 2字节
-		this->sbc(M_ZERO); 
+		this->SBC(M_ZERO); 
 		ADD_CYCLE(3);
 		break;
 	case 0xF5: //SBC 0x2B,X 零页X 2字节
-		this->sbc(M_X_ZERO);
+		this->SBC(M_X_ZERO);
 		ADD_CYCLE(4);
 		break;
 	case 0xED: //SBC 0x002B 绝对 3字节
-		this->sbc(M_ABS);
+		this->SBC(M_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0xFD: //SBC 0x002B,X 绝对X 3字节
-		this->sbc(M_X_ABS);
+		this->SBC(M_X_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0xF9: //SBC 0x002B,Y 绝对Y 3字节
-		this->sbc(M_Y_ABS);
+		this->SBC(M_Y_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0xE1: //SBC (0x2B,X) 变址X间接 2字节
-		this->sbc(M_X_IDA);
+		this->SBC(M_X_IDA);
 		ADD_CYCLE(6);
 		break;
 	case 0xF1: //SBC (0x2B),Y 间接变址Y 2字节
-		this->sbc(M_IDA_Y);
+		this->SBC(M_IDA_Y);
 		ADD_CYCLE(5);
 		break;
 	case 0xC6: //DEC 0x2B 零页 2字节
-		this->dec(M_ZERO);
+		this->DEC(M_ZERO);
 		ADD_CYCLE(5);
 		break;
 	case 0xD6: //DEC 0x2B,X 零页X 2字节
-		this->dec(M_X_ZERO);
+		this->DEC(M_X_ZERO);
 		ADD_CYCLE(6);
 		break;
 	case 0xCE: //DEC 0x002B 绝对 3字节
-		this->inc(M_ABS);
+		this->INC(M_ABS);
 		ADD_CYCLE(6);
 		break;
 	case 0xDE: //DEC 0x002B,X 绝对X 3字节
-		this->inc(M_X_ABS);
+		this->INC(M_X_ABS);
 		ADD_CYCLE(7);
 		break;
 	case 0xCA: //DEX 1字节
-		this->dex();
+		this->DEX();
 		ADD_CYCLE(2);
 		break;
 	case 0x88: //DEY 1字节
-		this->dey();
+		this->DEY();
 		ADD_CYCLE(2);
 		break;
 	case 0x29: //AND #0x2B 累加器A&0x2B 2字节
-		this->and(M_Q);
+		this->AND(M_Q);
 		ADD_CYCLE(2);
 		break;
 	case 0x25: //AND 0x2B 零页 2字节
-		this->and(M_ZERO);
+		this->AND(M_ZERO);
 		ADD_CYCLE(3);
 		break;
 	case 0x35: //AND 0x2B,X 零页X 2字节
-		this->and(M_X_ZERO);
+		this->AND(M_X_ZERO);
 		ADD_CYCLE(4);
 		break;
 	case 0x2D: //AND 0x002B 绝对 3字节
-		this->and(M_ABS);
+		this->AND(M_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0x3D: //AND 0x002B,X 绝对X 3字节
-		this->and(M_X_ABS);
+		this->AND(M_X_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0x39: //AND 0x002B,Y 绝对Y 3字节
-		this->and(M_Y_ABS);
+		this->AND(M_Y_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0x21: //AND (0x2B,X) 变址X间接 2字节
-		this->and(M_X_IDA);
+		this->AND(M_X_IDA);
 		ADD_CYCLE(6);
 		break;
 	case 0x31: //SBC (0x2B),Y 间接变址Y 2字节
-		this->and(M_IDA_Y);
+		this->AND(M_IDA_Y);
 		ADD_CYCLE(5);
 		break;
 	case 0x49: //EOR #0x2B 累加器A&0x2B 2字节
-		this->eor(M_Q);
+		this->EOR(M_Q);
 		ADD_CYCLE(2);
 		break;
 	case 0x45: //EOR 0x2B 零页 2字节
-		this->eor(M_ZERO);
+		this->EOR(M_ZERO);
 		ADD_CYCLE(3);
 		break;
 	case 0x55: //EOR 0x2B,X 零页X 2字节
-		this->eor(M_X_ZERO);
+		this->EOR(M_X_ZERO);
 		ADD_CYCLE(4);
 		break;
 	case 0x4D: //EOR 0x002B 绝对 3字节
-		this->eor(M_ABS);
+		this->EOR(M_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0x5D: //EOR 0x002B,X 绝对X 3字节
-		this->eor(M_X_ABS);
+		this->EOR(M_X_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0x59: //EOR 0x002B,Y 绝对Y 3字节
-		this->eor(M_Y_ABS);
+		this->EOR(M_Y_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0x41: //EOR (0x2B,X) 变址X间接 2字节
-		this->eor(M_X_IDA);
+		this->EOR(M_X_IDA);
 		ADD_CYCLE(6);
 		break;
 	case 0x51: //EOR (0x2B),Y 间接变址Y 2字节
-		this->eor(M_IDA_Y);
+		this->EOR(M_IDA_Y);
 		ADD_CYCLE(5);
 		break;
 	/****ORA******/
 	case 0x09: //ORA #0x2B 累加器A&0x2B 2字节
-		this->ora(M_Q);
+		this->ORA(M_Q);
 		ADD_CYCLE(2);
 		break;
 	case 0x05: //ORA 0x2B 零页 2字节
-		this->ora(M_ZERO);
+		this->ORA(M_ZERO);
 		ADD_CYCLE(3);
 		break;
 	case 0x15: //ORA 0x2B,X 零页X 2字节
-		this->ora(M_X_ZERO);
+		this->ORA(M_X_ZERO);
 		ADD_CYCLE(4);
 		break;
 	case 0x0D: //ORA 0x002B 绝对 3字节
-		this->ora(M_ABS);
+		this->ORA(M_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0x1D: //ORA 0x002B,X 绝对X 3字节
-		this->ora(M_X_ABS);
+		this->ORA(M_X_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0x19: //ORA 0x002B,Y 绝对Y 3字节
-		this->ora(M_Y_ABS);
+		this->ORA(M_Y_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0x01: //ORA (0x2B,X) 变址X间接 2字节
-		this->ora(M_X_IDA);
+		this->ORA(M_X_IDA);
 		ADD_CYCLE(6);
 		break;
 	case 0x11: //ORA (0x2B),Y 间接变址Y 2字节
-		this->ora(M_IDA_Y);
+		this->ORA(M_IDA_Y);
 		ADD_CYCLE(5);
 		break;
 	/****ASL******/
 	case 0x0A: //ASL A<<1 1字节
-		this->asl(M_A);
+		this->ASL(M_A);
 		ADD_CYCLE(2);
 		break;
 	case 0x06: //ASL 0x2B 零页 2字节
-		this->asl(M_ZERO);
+		this->ASL(M_ZERO);
 		ADD_CYCLE(5);
 		break;
 	case 0x16: //ASL 0x2B,X 零页X 2字节
-		this->asl(M_X_ZERO);
+		this->ASL(M_X_ZERO);
 		ADD_CYCLE(6);
 		break;
 	case 0x0E: //ASL 0x002b 绝对 3字节
-		this->asl(M_ABS);
+		this->ASL(M_ABS);
 		ADD_CYCLE(6);
 		break;
 	case 0x1E: //ASL 0x002b,X 绝对X 3字节
-		this->asl(M_X_ABS);
+		this->ASL(M_X_ABS);
 		ADD_CYCLE(7);
 		break;
 	/****LSR******/
 	case 0x4A: //LSR A>>1 1字节
-		this->lsr(M_A);
+		this->LSR(M_A);
 		ADD_CYCLE(2);
 		break;
 	case 0x46: //LSR 0x2B 零页 2字节
-		this->lsr(M_ZERO);
+		this->LSR(M_ZERO);
 		ADD_CYCLE(5);
 		break;
 	case 0x56: //LSR 0x2B,X 零页X 2字节
-		this->lsr(M_X_ZERO);
+		this->LSR(M_X_ZERO);
 		ADD_CYCLE(6);
 		break;
 	case 0x4E: //LSR 0x002b 绝对 3字节
-		this->lsr(M_ABS);
+		this->LSR(M_ABS);
 		ADD_CYCLE(6);
 		break;
 	case 0x5E: //LSR 0x002b,X 绝对X 3字节
-		this->lsr(M_X_ABS);
+		this->LSR(M_X_ABS);
 		ADD_CYCLE(7);
 		break;
 	/****ROL******/
 	case 0x2A: //ROL A<<1 1字节
-		this->rol(M_A);
+		this->ROL(M_A);
 		ADD_CYCLE(2);
 		break;
 	case 0x26: //ROL 0x2B 零页 2字节
-		this->rol(M_ZERO);
+		this->ROL(M_ZERO);
 		ADD_CYCLE(5);
 		break;
 	case 0x36: //ROL 0x2B,X 零页X 2字节
-		this->rol(M_X_ZERO);
+		this->ROL(M_X_ZERO);
 		ADD_CYCLE(6);
 		break;
 	case 0x2E: //ROL 0x002b 绝对 3字节
-		this->rol(M_ABS);
+		this->ROL(M_ABS);
 		ADD_CYCLE(6);
 		break;
 	case 0x3E: //ROL 0x002b,X 绝对X 3字节
-		this->rol(M_X_ABS);
+		this->ROL(M_X_ABS);
 		ADD_CYCLE(7);
 		break;
 	/****ROR******/
 	case 0x6A: //ROR A<<1 1字节
-		this->rol(M_A);
+		this->ROL(M_A);
 		ADD_CYCLE(2);
 		break;
 	case 0x66: //ROR 0x2B 零页 2字节
-		this->rol(M_ZERO);
+		this->ROL(M_ZERO);
 		ADD_CYCLE(5);
 		break;
 	case 0x76: //ROR 0x2B,X 零页X 2字节
-		this->rol(M_X_ZERO);
+		this->ROL(M_X_ZERO);
 		ADD_CYCLE(6);
 		break;
 	case 0x6E: //ROR 0x002b 绝对 3字节
-		this->rol(M_ABS);
+		this->ROL(M_ABS);
 		ADD_CYCLE(6);
 		break;
 	case 0x7E: //ROR 0x002b,X 绝对X 3字节
-		this->rol(M_X_ABS);
+		this->ROL(M_X_ABS);
 		ADD_CYCLE(7);
 		break;
 	/******条件跳转指令******/
 	case 0x90: //BCC C=0 挑转 2字节
-		this->bcc();
+		this->BCC();
 		ADD_CYCLE(2);
 		break;
 	case 0xB0: //BCS C=1 挑转 2字节
-		this->bcs();
+		this->BCS();
 		ADD_CYCLE(2);
 		break;
 	case 0xD0: //BNE Z=0 挑转 2字节
-		this->bne();
+		this->BNE();
 		ADD_CYCLE(2);
 		break;
 	case 0xF0: //BEQ Z=1 挑转 2字节
-		this->beq();
+		this->BEQ();
 		ADD_CYCLE(2);
 		break;
 	case 0x10: //BPL N=0 挑转 2字节
-		this->bpl();
+		this->BPL();
 		ADD_CYCLE(2);
 		break;
 	case 0x30: //BMI N=1 挑转 2字节
-		this->bmi();
+		this->BMI();
 		ADD_CYCLE(2);
 		break;
 	case 0x50: //BVC V=0 挑转 2字节
-		this->bvc();
+		this->BVC();
 		ADD_CYCLE(2);
 		break;
 	case 0x70: //BVS V=1 挑转 2字节
-		this->bvs();
+		this->BVS();
 		ADD_CYCLE(2);
 		break;
 	/***JMP****/
 	case 0x4C: //JMP 0x002B 绝对 3字节
-		this->jmp(M_ABS);
+		this->JMP(M_ABS);
 		ADD_CYCLE(3);
 		break;
 	case 0x6C: //JMP (0x002B) 间接 3字节
-		this->jmp(M_IDA);
+		this->JMP(M_IDA);
 		ADD_CYCLE(5);
 		break;
 	/***JSR****/
 	case 0x20: //JSR 0x002B 转子程序 3字节
-		this->jsr();
+		this->JSR();
 		ADD_CYCLE(6);
 		break;
 	case 0x40: //RTI 中断返回 1字节
-		this->rti();
+		this->RTI();
 		ADD_CYCLE(6);
 		break;
 	case 0x60: //RTS 子程序返回 1字节
-		this->rts();
+		this->RTS();
 		ADD_CYCLE(6);
 		break;
 	/*******清标志位******/
 	case 0x18: //CLC 1字节
-		this->clc();
+		this->CLC();
 		ADD_CYCLE(2);
 		break;
 	case 0xD8: //CLD 1字节
-		this->cld();
+		this->CLD();
 		ADD_CYCLE(2);
 		break;
 	case 0x58: //CLI 1字节
-		this->cli();
+		this->CLI();
 		ADD_CYCLE(2);
 		break;
 	case 0xB8: //CLV 1字节
-		this->clv();
+		this->CLV();
 		ADD_CYCLE(2);
 		break;
 	/*******设置标志位******/
 	case 0x38: //SEC 1字节
-		this->sec();
+		this->SEC();
 		ADD_CYCLE(2);
 		break;
 	case 0xF8: //SED 1字节
-		this->sed();
+		this->SED();
 		ADD_CYCLE(2);
 		break;
 	case 0x78: //SEI 1字节
-		this->sei();
+		this->SEI();
 		ADD_CYCLE(2);
 		break;
 	/****CMP******/
 	case 0xC9: //CMP #0x2B 累加器A与0x2B比较 2字节
-		this->cmp(M_Q);
+		this->CMP(M_Q);
 		ADD_CYCLE(2);
 		break;
 	case 0xC5: //CMP 0x2B 零页 2字节
-		this->cmp(M_ZERO);
+		this->CMP(M_ZERO);
 		ADD_CYCLE(3);
 		break;
 	case 0xD5: //CMP 0x2B,X 零页X 2字节
-		this->cmp(M_X_ZERO);
+		this->CMP(M_X_ZERO);
 		ADD_CYCLE(4);
 		break;
 	case 0xCD: //CMP 0x002B 绝对 3字节
-		this->cmp(M_ABS);
+		this->CMP(M_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0xDD: //CMP 0x002B,X 绝对X 3字节
-		this->cmp(M_X_ABS);
+		this->CMP(M_X_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0xD9: //CMP 0x002B,Y 绝对Y 3字节
-		this->cmp(M_Y_ABS);
+		this->CMP(M_Y_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0xC1: //CMP (0x2B,X) 变址X间接 2字节
-		this->cmp(M_X_IDA);
+		this->CMP(M_X_IDA);
 		ADD_CYCLE(6);
 		break;
 	case 0xD1: //CMP (0x2B),Y 间接变址Y 2字节
-		this->cmp(M_IDA_Y);
+		this->CMP(M_IDA_Y);
 		ADD_CYCLE(5);
 		break;
 	/****CPX******/
 	case 0xE0: //CPX #0x2B 寄存器X与0x2B比较 2字节
-		this->cpx(M_Q);
+		this->CPX(M_Q);
 		ADD_CYCLE(2);
 		break;
 	case 0xE4: //CPX 0x2B 零页 2字节
-		this->cpx(M_ZERO);
+		this->CPX(M_ZERO);
 		ADD_CYCLE(3);
 		break;
 	case 0xEC: //CPX 0x002B 绝对 3字节
-		this->cpx(M_ABS);
+		this->CPX(M_ABS);
 		ADD_CYCLE(4);
 		break;
 	/****CPY******/
 	case 0xC0: //CPY #0x2B 寄存器Y与0x2B比较 2字节
-		this->cpy(M_Q);
+		this->CPY(M_Q);
 		ADD_CYCLE(2);
 		break;
 	case 0xC4: //CPY 0x2B 零页 2字节
-		this->cpy(M_ZERO);
+		this->CPY(M_ZERO);
 		ADD_CYCLE(3);
 		break;
 	case 0xCC: //CPY 0x002B 绝对 3字节
-		this->cpy(M_ABS);
+		this->CPY(M_ABS);
 		ADD_CYCLE(4);
 		break;
 	/****LDA******/
 	case 0xA9: //LDA #0x2B 送累加器A=0x2B 2字节
-		this->lda(M_Q);
+		this->LDA(M_Q);
 		ADD_CYCLE(2);
 		break;
 	case 0xA5: //LDA 0x2B 零页 2字节
-		this->lda(M_ZERO);
+		this->LDA(M_ZERO);
 		ADD_CYCLE(3);
 		break;
 	case 0xB5: //LDA 0x2B,X 零页X 2字节
-		this->lda(M_X_ZERO);
+		this->LDA(M_X_ZERO);
 		ADD_CYCLE(4);
 		break;
 	case 0xAD: //LDA 0x002B 绝对 3字节
-		this->lda(M_ABS);
+		this->LDA(M_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0xBD: //LDA 0x002B,X 绝对X 3字节
-		this->lda(M_X_ABS);
+		this->LDA(M_X_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0xB9: //LDA 0x002B,Y 绝对Y 3字节
-		this->lda(M_Y_ABS);
+		this->LDA(M_Y_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0xA1: //LDA (0x2B,X) 变址X间接 2字节
-		this->lda(M_X_IDA);
+		this->LDA(M_X_IDA);
 		ADD_CYCLE(6);
 		break;
 	case 0xB1: //LDA (0x2B),Y 间接变址Y 2字节
-		this->lda(M_IDA_Y);
+		this->LDA(M_IDA_Y);
 		ADD_CYCLE(5);
 		break;
 	/****LDX******/
 	case 0xA2: //LDX #0x2B 送寄存器X=0x2B 2字节
-		this->ldx(M_Q);
+		this->LDX(M_Q);
 		ADD_CYCLE(2);
 		break;
 	case 0xA6: //LDX 0x2B 零页 2字节
-		this->ldx(M_ZERO);
+		this->LDX(M_ZERO);
 		ADD_CYCLE(3);
 		break;
 	case 0xB6: //LDX 0x2B,Y 零页Y 2字节
-		this->ldx(M_Y_ZERO);
+		this->LDX(M_Y_ZERO);
 		ADD_CYCLE(4);
 		break;
 	case 0xAE: //LDX 0x002B 绝对 3字节
-		this->ldx(M_ABS);
+		this->LDX(M_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0xBE: //LDX 0x002B,Y 绝对Y 3字节
-		this->ldx(M_Y_ABS);
+		this->LDX(M_Y_ABS);
 		ADD_CYCLE(4);
 		break;
 	/****LDY******/
 	case 0xA0: //LDY #0x2B 送寄存器Y=0x2B 2字节
-		this->ldy(M_Q);
+		this->LDY(M_Q);
 		ADD_CYCLE(2);
 		break;
 	case 0xA4: //LDY 0x2B 零页 2字节
-		this->ldy(M_ZERO);
+		this->LDY(M_ZERO);
 		ADD_CYCLE(3);
 		break;
 	case 0xB4: //LDY 0x2B,X 零页X 2字节
-		this->ldy(M_X_ZERO);
+		this->LDY(M_X_ZERO);
 		ADD_CYCLE(4);
 		break;
 	case 0xAC: //LDY 0x002B 绝对 3字节
-		this->ldy(M_ABS);
+		this->LDY(M_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0xBC: //LDY 0x002B,X 绝对X 3字节
-		this->ldy(M_X_ABS);
+		this->LDY(M_X_ABS);
 		ADD_CYCLE(4);
 		break;
 	/****STA******/
 	case 0x85: //STA 0x2B 累加器A到内存 零页 2字节
-		this->sta(M_ZERO);
+		this->STA(M_ZERO);
 		ADD_CYCLE(3);
 		break;
 	case 0x95: //STA 0x2B,X 零页X 2字节
-		this->sta(M_X_ZERO);
+		this->STA(M_X_ZERO);
 		ADD_CYCLE(4);
 		break;
 	case 0x8D: //STA 0x002B 绝对 3字节
-		this->sta(M_ABS);
+		this->STA(M_ABS);
 		ADD_CYCLE(4);
 		break;
 	case 0x9D: //STA 0x002B,X 绝对X 3字节
-		this->sta(M_X_ABS);
+		this->STA(M_X_ABS);
 		ADD_CYCLE(5);
 		break;
 	case 0x99: //STA 0x002B,Y 绝对Y 3字节
-		this->sta(M_Y_ABS);
+		this->STA(M_Y_ABS);
 		ADD_CYCLE(5);
 		break;
 	case 0x81: //STA (0x2B,X) 变址X间接 2字节
-		this->sta(M_X_IDA);
+		this->STA(M_X_IDA);
 		ADD_CYCLE(6);
 		break;
 	case 0x91: //STA (0x2B),Y 间接变址Y 2字节
-		this->sta(M_IDA_Y);
+		this->STA(M_IDA_Y);
 		ADD_CYCLE(6);
 		break;
 	/****STX******/
 	case 0x86: //STX 0x2B 寄存器X到内存  零页 2字节
-		this->stx(M_ZERO);
+		this->STX(M_ZERO);
 		ADD_CYCLE(3);
 		break;
 	case 0x96: //STX 0x2B,Y 零页Y 2字节
-		this->stx(M_Y_ZERO);
+		this->STX(M_Y_ZERO);
 		ADD_CYCLE(4);
 		break;
 	case 0x8E: //STX 0x002B 绝对 3字节
-		this->stx(M_ABS);
+		this->STX(M_ABS);
 		ADD_CYCLE(4);
 		break;
 	/****STY******/
 	case 0x84: //STY 0x2B 寄存器X到内存  零页 2字节
-		this->sty(M_ZERO);
+		this->STY(M_ZERO);
 		ADD_CYCLE(3);
 		break;
 	case 0x94: //STY 0x2B,X 零页X 2字节
-		this->sty(M_X_ZERO);
+		this->STY(M_X_ZERO);
 		ADD_CYCLE(4);
 		break;
 	case 0x8C: //STY 0x002B 绝对 3字节
-		this->sty(M_ABS);
+		this->STY(M_ABS);
 		ADD_CYCLE(4);
 		break;
 	/*******寄存器到寄存器********/
 	case 0xAA: //TAX A->X 1字节
-		this->tax();
+		this->TAX();
 		ADD_CYCLE(2);
 		break;
 	case 0xA8: //TAY A->Y 1字节
-		this->tay();
+		this->TAY();
 		ADD_CYCLE(2);
 		break;
 	case 0xBA: //TSX S->X 1字节
-		this->tsx();
+		this->TSX();
 		ADD_CYCLE(2);
 		break;
 	case 0x8A: //TXA X->A 1字节
-		this->txa();
+		this->TXA();
 		ADD_CYCLE(2);
 		break;
 	case 0x9A: //TXS X->S 1字节
-		this->txs();
+		this->TXS();
 		ADD_CYCLE(2);
 		break;
 	case 0x98: //TYA Y->A 1字节
-		this->tya();
+		this->TYA();
 		ADD_CYCLE(2);
 		break;
 	/*******堆栈操作********/
 	case 0x48: //PHA A入栈 1字节
-		this->pha();
+		this->PHA();
 		ADD_CYCLE(3);
 		break;
 	case 0x08: //PHP P入栈 1字节
-		this->php();
+		this->PHP();
 		ADD_CYCLE(3);
 		break;
 	case 0x68: //PLA 出栈入A 1字节
-		this->pla();
+		this->PLA();
 		ADD_CYCLE(4);
 		break;
 	case 0x28: //PLP 出栈入P 1字节
-		this->plp();
+		this->PLP();
 		ADD_CYCLE(4);
 		break;
 	case 0xEA: //NOP
-		this->nop();
+		this->NOP();
 		ADD_CYCLE(2);
 		break;
 	case 0x24:
-		this->bit(M_ZERO);
+		this->BIT(M_ZERO);
 		ADD_CYCLE(3);
 		break;
 	case 0x2C:
-		this->bit(M_ABS);
+		this->BIT(M_ABS);
 		ADD_CYCLE(4);
 		break;
 	default:
@@ -712,7 +730,7 @@ CPU6502_CODE CPU::opcode(byte opcode) {
 	}
 	this->printAsm();
 	R.PC += opsize;
-	return INX;
+	return CERR;
 }
 
 byte CPU::value(CPU6502_MODE mode, word* paddr) {
@@ -825,7 +843,7 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 	return v;
 }
 /* ADC (NV----ZC) */
-void CPU::adc(CPU6502_MODE mode) {
+void CPU::ADC(CPU6502_MODE mode) {
 	this->setAsmOpStr("ADC");
 	DT = this->value(mode); //获得要累加的值
 	if (CPUSUC(err.code)) { //指令有效
@@ -839,7 +857,7 @@ void CPU::adc(CPU6502_MODE mode) {
 	}
 }
 /* INC (N-----Z-) */
-void CPU::inc(CPU6502_MODE mode) {
+void CPU::INC(CPU6502_MODE mode) {
 	this->setAsmOpStr("INC");
 	word addr;
 	DT = this->value(mode, &addr); //获得要累加的值
@@ -852,7 +870,7 @@ void CPU::inc(CPU6502_MODE mode) {
 	}
 }
 /* INX (N-----Z-) */
-void CPU::inx() {
+void CPU::INX() {
 	this->setAsmOpStr("INX");
 	//X + 1 -> X
 	R.X++;
@@ -860,7 +878,7 @@ void CPU::inx() {
 	opsize = 1;
 }
 /* INY (N-----Z-) */
-void CPU::iny() {
+void CPU::INY() {
 	this->setAsmOpStr("INY");
 	//Y + 1 -> Y
 	R.Y++;
@@ -868,7 +886,7 @@ void CPU::iny() {
 	opsize = 1;
 }
 /* SBC (NV----ZC) */
-void CPU::sbc(CPU6502_MODE mode) {
+void CPU::SBC(CPU6502_MODE mode) {
 	this->setAsmOpStr("SBC");
 	DT = this->value(mode);
 	//需要向C借位
@@ -879,7 +897,7 @@ void CPU::sbc(CPU6502_MODE mode) {
 	SET_ZN_FLAG(R.A);
 }
 /* DEX (N-----Z-) */
-void CPU::dec(CPU6502_MODE mode) {
+void CPU::DEC(CPU6502_MODE mode) {
 	this->setAsmOpStr("DEC");
 	word addr;
 	DT = this->value(mode, &addr); //获得要减的值
@@ -892,42 +910,42 @@ void CPU::dec(CPU6502_MODE mode) {
 	}
 }
 /* DEX (N-----Z-) */
-void CPU::dex() {
+void CPU::DEX() {
 	this->setAsmOpStr("DEX");
 	R.X--;
 	SET_ZN_FLAG(R.X);
 	opsize = 1;
 }
 /* DEX (N-----Z-) */
-void CPU::dey() {
+void CPU::DEY() {
 	this->setAsmOpStr("DEY");
 	R.Y--;
 	SET_ZN_FLAG(R.Y);
 	opsize = 1;
 }
 /* AND (N-----Z-) */
-void CPU::and(CPU6502_MODE mode) {
+void CPU::AND(CPU6502_MODE mode) {
 	this->setAsmOpStr("AND");
 	DT = this->value(mode);
 	R.A &= DT;
 	SET_ZN_FLAG(R.A);
 }
 /* EOR (N-----Z-) */
-void CPU::eor(CPU6502_MODE mode) {
+void CPU::EOR(CPU6502_MODE mode) {
 	this->setAsmOpStr("EOR");
 	DT = this->value(mode);
 	R.A ^= DT;
 	SET_ZN_FLAG(R.A);
 }
 /* ORA (N-----Z-) */
-void CPU::ora(CPU6502_MODE mode) {
+void CPU::ORA(CPU6502_MODE mode) {
 	this->setAsmOpStr("ORA");
 	DT = this->value(mode);
 	R.A |= DT;
 	SET_ZN_FLAG(R.A);
 }
 /* ASL (N-----ZC) */
-void CPU::asl(CPU6502_MODE mode) {
+void CPU::ASL(CPU6502_MODE mode) {
 	this->setAsmOpStr("ASL");
 	if (mode == M_A) { //累加器A操作
 		TST_FLAG(R.A & 0x80, C_FLAG);
@@ -944,7 +962,7 @@ void CPU::asl(CPU6502_MODE mode) {
 	}
 }
 /* LSR_A (N-----ZC) */
-void CPU::lsr(CPU6502_MODE mode) {
+void CPU::LSR(CPU6502_MODE mode) {
 	this->setAsmOpStr("LSR");
 	if (mode == M_A) { //累加器A操作
 		TST_FLAG(R.A & 0x01, C_FLAG);
@@ -961,7 +979,7 @@ void CPU::lsr(CPU6502_MODE mode) {
 	}
 }
 /* ROL (N-----ZC) */
-void CPU::rol(CPU6502_MODE mode) {
+void CPU::ROL(CPU6502_MODE mode) {
 	this->setAsmOpStr("ROL");
 	if (mode == M_A) { //累加器A操作
 		if (R.P & C_FLAG) { //C位也参与移位
@@ -990,7 +1008,7 @@ void CPU::rol(CPU6502_MODE mode) {
 	}
 }
 /* ROR (N-----ZC) */
-void CPU::ror(CPU6502_MODE mode) {
+void CPU::ROR(CPU6502_MODE mode) {
 	this->setAsmOpStr("ROR");
 	if (mode == M_A) { //累加器A操作
 		if (R.P & C_FLAG) { //C位也参与移位
@@ -1019,31 +1037,59 @@ void CPU::ror(CPU6502_MODE mode) {
 	}
 }
 /* BIT (NV----Z-) */
-void CPU::bit(CPU6502_MODE mode) {
+void CPU::BIT(CPU6502_MODE mode) {
 	this->setAsmOpStr("BIT");
 	DT = this->value(mode);
 	TST_FLAG((DT&R.A) == 0, Z_FLAG);
 	TST_FLAG(DT & 0x80, N_FLAG);
 	TST_FLAG(DT & 0x40, V_FLAG);
 }
-void CPU::jmp(CPU6502_MODE mode) {
+// 无条件跳转
+void CPU::JMP(CPU6502_MODE mode) {
 	this->setAsmOpStr("JMP");
-	word v = this->value(mode);
+	word addr;
+	word v = this->value(mode, &addr);
+	R.PC = addr;
+	opsize = 0;
 }
-void CPU::jsr() {
+// 跳转到子程序
+void CPU::JSR() {
 	this->setAsmOpStr("JSR");
-	opsize = 1;
+	word addr;
+	DT = this->value(M_ABS, &addr);
+	R.PC += 3; //此指令3个字节 +3是下一条指令
+	PUSH(R.PC >> 8); //高位先入栈 
+	PUSH(R.PC & 0xff); //低位后入栈
+	R.PC = addr; //子程序地址
+	opsize = 0;
 }
-void CPU::rti() {
-	this->setAsmOpStr("RTI");
-	opsize = 1;
-}
-void CPU::rts() {
+// 返回子程序
+void CPU::RTS() {
 	this->setAsmOpStr("RTS");
+	R.PC  = POP(); //低位
+	R.PC |= POP() * 0x100; //高位
+	opsize = 1;
+}
+// 强制进入中断 不可屏蔽
+void CPU::BRK() {
+	R.PC++; //此指令1个字节 +1是下一条指令
+	PUSH(R.PC >> 8); //高位先入栈 
+	PUSH(R.PC & 0xff); //低位后入栈
+	SET_FLAG(B_FLAG);
+	PUSH(R.P);
+	SET_FLAG(I_FLAG);
+	R.PC = MEM[IRQ_VECTOR] | (MEM[IRQ_VECTOR + 1] << 8);
+}
+// 中断返回
+void CPU::RTI() {
+	this->setAsmOpStr("RTI");
+	R.P = POP() | R_FLAG;
+	R.PC = POP(); //低位
+	R.PC |= POP() * 0x100; //高位
 	opsize = 1;
 }
 /* CMP (N-----ZC) */
-void CPU::cmp(CPU6502_MODE mode) {
+void CPU::CMP(CPU6502_MODE mode) {
 	this->setAsmOpStr("CMP");
 	DT = this->value(mode);
 	WT = (word)R.A - (word)DT;
@@ -1051,7 +1097,7 @@ void CPU::cmp(CPU6502_MODE mode) {
 	SET_ZN_FLAG((byte)WT);
 }
 /* CPX (N-----ZC) */
-void CPU::cpx(CPU6502_MODE mode) {
+void CPU::CPX(CPU6502_MODE mode) {
 	this->setAsmOpStr("CPX");
 	DT = this->value(mode);
 	WT = (word)R.X - (word)DT;
@@ -1059,7 +1105,7 @@ void CPU::cpx(CPU6502_MODE mode) {
 	SET_ZN_FLAG((byte)WT);
 }
 /* CPY (N-----ZC) */
-void CPU::cpy(CPU6502_MODE mode) {
+void CPU::CPY(CPU6502_MODE mode) {
 	this->setAsmOpStr("CPY");
 	DT = this->value(mode);
 	WT = (word)R.Y - (word)DT;
@@ -1067,7 +1113,7 @@ void CPU::cpy(CPU6502_MODE mode) {
 	SET_ZN_FLAG((byte)WT);
 }
 /* LDA (N-----Z-) */
-void CPU::lda(CPU6502_MODE mode) {
+void CPU::LDA(CPU6502_MODE mode) {
 	this->setAsmOpStr("LDA");
 	DT = this->value(mode);
 	if (CPUSUC(err.code)) { //指令有效
@@ -1078,7 +1124,7 @@ void CPU::lda(CPU6502_MODE mode) {
 	}
 }
 /* LDX (N-----Z-) */
-void CPU::ldx(CPU6502_MODE mode) {
+void CPU::LDX(CPU6502_MODE mode) {
 	this->setAsmOpStr("LDX");
 	DT = this->value(mode);
 	if (CPUSUC(err.code)) { //指令有效
@@ -1088,7 +1134,7 @@ void CPU::ldx(CPU6502_MODE mode) {
 	}
 }
 /* LDY (N-----Z-) */
-void CPU::ldy(CPU6502_MODE mode) {
+void CPU::LDY(CPU6502_MODE mode) {
 	this->setAsmOpStr("LDY");
 	DT = this->value(mode);
 	if (CPUSUC(err.code)) { //指令有效
@@ -1098,222 +1144,222 @@ void CPU::ldy(CPU6502_MODE mode) {
 	}
 }
 /* STA (--------) */
-void CPU::sta(CPU6502_MODE mode) {
+void CPU::STA(CPU6502_MODE mode) {
 	this->setAsmOpStr("STA");
 	word addr;
 	DT = this->value(mode, &addr);
 	MEM[addr] = R.A;
 }
 /* STX (--------) */
-void CPU::stx(CPU6502_MODE mode) {
+void CPU::STX(CPU6502_MODE mode) {
 	this->setAsmOpStr("STX");
 	word addr;
 	DT = this->value(mode, &addr);
 	MEM[addr] = R.X;
 }
 /* STY (--------) */
-void CPU::sty(CPU6502_MODE mode) {
+void CPU::STY(CPU6502_MODE mode) {
 	this->setAsmOpStr("STY");
 	word addr;
 	DT = this->value(mode, &addr);
 	MEM[addr] = R.Y;
 }
 /* TAX (N-----Z-) */
-void CPU::tax() {
+void CPU::TAX() {
 	this->setAsmOpStr("TAX");
 	R.X = R.A;
 	SET_ZN_FLAG(R.X);
 	opsize = 1;
 }
 /* TAY (N-----Z-) */
-void CPU::tay() {
+void CPU::TAY() {
 	this->setAsmOpStr("TAY");
 	R.Y = R.A;
 	SET_ZN_FLAG(R.Y);
 	opsize = 1;
 }
 /* TSX (N-----Z-) */
-void CPU::tsx() {
+void CPU::TSX() {
 	this->setAsmOpStr("TSX");
 	R.X = R.S;
 	SET_ZN_FLAG(R.X);
 	opsize = 1;
 }
 /* TXA (N-----Z-) */
-void CPU::txa() {
+void CPU::TXA() {
 	this->setAsmOpStr("TXA");
 	R.A = R.X;
 	SET_ZN_FLAG(R.A);
 	opsize = 1;
 }
 /* TXS (N-----Z-) */
-void CPU::txs() {
+void CPU::TXS() {
 	this->setAsmOpStr("TXS");
 	R.S = R.X;
 	SET_ZN_FLAG(R.S);
 	opsize = 1;
 }
 /* TYA (N-----Z-) */
-void CPU::tya() {
+void CPU::TYA() {
 	this->setAsmOpStr("TYA");
 	R.A = R.Y;
 	SET_ZN_FLAG(R.A);
 	opsize = 1;
 }
 //C位为0 跳转
-void CPU::bcc() {
+void CPU::BCC() {
 	this->setAsmOpStr("BCC");
 	if (!(R.P & C_FLAG)) {
-		this->bjmp();
+		this->BJMP();
 	}
 	opsize = 2;
 }
 //C位为1 跳转
-void CPU::bcs() {
+void CPU::BCS() {
 	this->setAsmOpStr("BCS");
 	if ((R.P & C_FLAG)) {
-		this->bjmp();
+		this->BJMP();
 	}
 	opsize = 2;
 }
 //Z位为0 跳转
-void CPU::bne() {
+void CPU::BNE() {
 	this->setAsmOpStr("BNE");
-	this->bjmp(!(R.P & Z_FLAG));
+	this->BJMP(!(R.P & Z_FLAG));
 }
 //Z位为1 跳转
-void CPU::beq() {
+void CPU::BEQ() {
 	this->setAsmOpStr("BEQ");
-	this->bjmp((R.P & Z_FLAG));
+	this->BJMP((R.P & Z_FLAG));
 }
 //N位为0 跳转
-void CPU::bpl() {
+void CPU::BPL() {
 	this->setAsmOpStr("BPL");
 	printf("P:%X, MEM:%X\n", R.P, MEM[0x2002]);
-	this->bjmp(!(R.P & N_FLAG));
+	this->BJMP(!(R.P & N_FLAG));
 }
 //N位为1 跳转
-void CPU::bmi() {
+void CPU::BMI() {
 	this->setAsmOpStr("BMI");
-	this->bjmp((R.P & N_FLAG));
+	this->BJMP((R.P & N_FLAG));
 }
 //V位为0 跳转
-void CPU::bvc() {
+void CPU::BVC() {
 	this->setAsmOpStr("BVC");
-	this->bjmp(!(R.P & V_FLAG));
+	this->BJMP(!(R.P & V_FLAG));
 }
 //v位为1 跳转
-void CPU::bvs() {
+void CPU::BVS() {
 	this->setAsmOpStr("BVS");
-	this->bjmp((R.P & V_FLAG));
+	this->BJMP((R.P & V_FLAG));
 }
 //条件跳转
-void CPU::bjmp(bool jmp) {
+void CPU::BJMP(bool JMP) {
 	word addr;
 	DT = this->value(M_OFT, &addr);
 	word a = R.PC;
-	if (jmp) {
+	if (JMP) {
 		R.PC = R.PC + (sbyte)addr;
 		printf("R.PC:%X, DT:%X\n", R.PC, addr);
 	}
 }
 // PHA A入栈
-void CPU::pha() {
+void CPU::PHA() {
 	this->setAsmOpStr("PHA");
 	PUSH(R.A);
 	opsize = 1;
 }
 // PHP P入栈
-void CPU::php() {
+void CPU::PHP() {
 	this->setAsmOpStr("PHP");
 	PUSH(R.P | B_FLAG);
 	opsize = 1;
 }
 // PLA (N-----Z-) 出栈入A
-void CPU::pla() {
+void CPU::PLA() {
 	this->setAsmOpStr("PLA");
 	R.A = POP();
 	SET_ZN_FLAG(R.A);
 	opsize = 1;
 }
 // PLP 出栈入P
-void CPU::plp() {
+void CPU::PLP() {
 	this->setAsmOpStr("PLP");
 	R.P = POP() | R_FLAG;
 	opsize = 1;
 }
-void CPU::nop() {
+void CPU::NOP() {
 	this->setAsmOpStr("NOP");
 	opsize = 1;
 }
 //设置C进位
-void CPU::sec() { 
+void CPU::SEC() { 
 	R.P |= 0x01;
 	this->setAsmOpStr("SEC");
 	opsize = 1;
 }
-//设置Z位结果为0
-void CPU::sez() { 
+//设置Z位 结果为0
+void CPU::SEZ() { 
 	R.P |= 0x02;
 }
 //设置中断位[禁止中断]
-void CPU::sei() { 
+void CPU::SEI() { 
 	R.P |= 0x04; 
 	this->setAsmOpStr("SEI");
 	opsize = 1;
 }
 //设置十进制位
-void CPU::sed() { 
+void CPU::SED() { 
 	R.P |= 0x08;
 	this->setAsmOpStr("SED");
 	opsize = 1;
 }
 //设置溢出位
-void CPU::sev() { R.P |= 0x40; }
+void CPU::SEV() { R.P |= 0x40; }
 //设置负数位
-void CPU::sen() { R.P |= 0x80; }
+void CPU::SEN() { R.P |= 0x80; }
 
 //清掉C进位
-void CPU::clc() { 
+void CPU::CLC() { 
 	R.P &= 0xfe;
 	this->setAsmOpStr("CLC");
 	opsize = 1;
 }
 //清掉Z位结果不为0
-void CPU::clz() { R.P &= 0xfd; }
+void CPU::CLZ() { R.P &= 0xfd; }
 //清掉中断位[接受中断]
-void CPU::cli() { 
+void CPU::CLI() { 
 	R.P &= 0xfb;
 	this->setAsmOpStr("CLI");
 	opsize = 1;
 }
 //清掉十进制位
-void CPU::cld() { 
+void CPU::CLD() { 
 	R.P &= 0xf7;
 	this->setAsmOpStr("CLD");
 	opsize = 1;
 }
 //清掉溢出位
-void CPU::clv() { 
+void CPU::CLV() { 
 	R.P &= 0xbf; 
 	this->setAsmOpStr("CLV");
 	opsize = 1;
 }
 //清掉负数位
-void CPU::cln() { R.P &= 0x7f; }
+void CPU::CLN() { R.P &= 0x7f; }
 
 //获得C进位
-byte CPU::gec() { return R.P & 0x01; }
+byte CPU::GEC() { return R.P & 0x01; }
 //获得Z位结果
-byte CPU::gez() { return (R.P >> 1) & 0x01; }
+byte CPU::GEZ() { return (R.P >> 1) & 0x01; }
 //获得中断位
-byte CPU::gei() { return (R.P >> 2) & 0x01; }
+byte CPU::GEI() { return (R.P >> 2) & 0x01; }
 //获得十进制位
-byte CPU::ged() { return (R.P >> 3) & 0x01; }
+byte CPU::GED() { return (R.P >> 3) & 0x01; }
 //获得溢出位
-byte CPU::gev() { return (R.P >> 6) & 0x01; }
+byte CPU::GEV() { return (R.P >> 6) & 0x01; }
 //获得负数位
-byte CPU::gen() { return (R.P >> 7) & 0x01; }
+byte CPU::GEN() { return (R.P >> 7) & 0x01; }
 
 void CPU::setPause(bool r) {
 	pause = r;
@@ -1348,7 +1394,7 @@ void CPU::printAsm() {
 		clist->InsertItem(row, ra); //一定要先这样调用后面才显示
 		clist->SetItemText(row, 1, hs);
 		clist->SetItemText(row, 2, as);
-		clist->EnsureVisible(row, FALSE); //滚动到底部
+		clist->EnsureVisible(row, false); //滚动到底部
 		/*******显示寄存器值*****/
 		CString rs;
 		rs.Format(L"CPU寄存器   A:%02X   X:%02X   Y:%02X   S:%02X   P:%02X     PC:%02X", 
