@@ -31,6 +31,7 @@ public:
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
 #endif
+	static UINT Game(LPVOID param);
 
 protected:  // 控件条嵌入成员
 	CToolBar          m_wndToolBar;

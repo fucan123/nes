@@ -74,6 +74,7 @@ BOOL CDebugDlg::OnInitDialog()
 
 	g_CPU.dbgdlg = this->m_hWnd;
 	g_CPU.clist = &m_list;
+	//g_CPU.pause = true;
 	g_CPU.reset();
 
 	//MessageBox(L"INIT");
@@ -128,6 +129,9 @@ void CDebugDlg::OnOK() {
 			}
 			GetDlgItem(IDC_STATIC_OPR)->SetWindowText(str);
 			GetDlgItem(IDC_EDIT_DOP)->SetWindowText(L"");
+		}
+		if (op == 's' || op == 'S') {
+			
 		}
 	}
 }

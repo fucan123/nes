@@ -37,20 +37,35 @@ void PPU::load(char* m, size_t size) {
 //读取寄存器
 byte PPU::readREG(byte addr) {
 	addr &= 0x07;
-	if (addr == 2) //读端口2002 vblank位复位
-		CLR_VBLANK();
+	//MessageBox(NULL, L"READ PPU REG!", L"t", MB_OK);
+	byte value = REG[addr];
+	if (addr == 2) { //读端口2002 vblank位复位
+		CString ts;
+		ts.Format(L"2002:%x", value);
+		//MessageBox(NULL, ts, L"t", MB_OK);
+		if (value > 0) {
+			//MessageBox(NULL, ts, L"t", MB_OK);
+		}
+		
+		//MessageBox(NULL, ts, L"t", MB_OK);
+		//CLR_VBLANK();
+	}
 
-	return REG[addr];
+	return value;
 }
 //写入寄存器
 void PPU::writeREG(byte addr, byte value) {
-	REG[addr & 0x07] = value;
+	addr &= 0x07;
+	if (addr == 2) {
+		//MessageBox(NULL, L"set vblank", L"t", MB_OK);
+	}
+	REG[addr] = value;
 }
 
-void PPU::showBG() {
+void PPU::getBG(byte images[]) {
 	//逐行绘制(分辨率256*240，240行)
 	for (int i = 0; i < 240; i++) {
-		this->scanfLine(i);
+		this->scanfLine(i, images);
 	}
 	SET_VBLANK();
 	/*
@@ -66,7 +81,10 @@ void PPU::showBG() {
 	*/
 }
 
-void PPU::scanfLine(byte line) {
+void PPU::scanfLine(byte line, byte images[]) {
+	if (line == 0) {
+		CLR_VBLANK();
+	}
 	//属于画面中哪个画面(属于命名表中几号编号) 一共8行 每行32个
 	word n = (line >> 3) * 32;
 	//字模中开始地址 占2个字节 每个字模16字节
@@ -78,6 +96,7 @@ void PPU::scanfLine(byte line) {
 		t.Format(L"n=%d,m=%d,e=%d,line>>3=%d", n, m, e, line >> 3);
 		//MessageBox(NULL, t, L"t", MB_OK);
 	}
+	int index = line * 256 * 4;
 	while (n < e) {
 		//字模编号
 		byte tn = N_TABLE[n];
@@ -95,8 +114,13 @@ void PPU::scanfLine(byte line) {
 			//在调色板组中的位置
 			byte pos = (title >> i) & 0x03;
 			//获取颜色
-			byte color = *(col_addr + pos);
-			if (dc) {
+			byte color = this->rgb(*(col_addr + pos));
+			//填充画面
+			images[index++] = (color >> 16) & 0xff;
+			images[index++] = (color >> 8) & 0xff;
+			images[index++] = color & 0xff;
+			images[index++] = 0;
+			/*if (dc) {
 				CPen pen(PS_SOLID, 1, this->rgb(color) + line);//创建一个虚线线条，宽度为1，红色的画笔对象  
 				CPen* pOldPen = dc->SelectObject(&pen);//将画笔对象选入到设备描述表中 
 				POINT ps = {sx, line};
@@ -108,10 +132,16 @@ void PPU::scanfLine(byte line) {
 				if (line == 60) {
 					//MessageBox(NULL, L"60", L"t", MB_OK);
 				}
-			}
+			}*/
 			sx += 1;
 		}
 		n++;
+	}
+	if (line == 239) {
+		CString ts;
+		ts.Format(L"vblank, line:%d", line);
+		//MessageBox(NULL, ts, L"t", MB_OK);
+		SET_VBLANK();
 	}
 }
 //调色板共支持64种颜色

@@ -141,8 +141,9 @@ BOOL Cnes_mfcApp::InitInstance()
 
 	g_CPU.load(m, 0xffff, m + header.rom_count * 0x4000, 0x2000);
 	g_PPU.load(m + header.rom_count * 0x4000, 0x2000);
-	AfxBeginThread(CPURun, this);
-	AfxBeginThread(PPURun, this);
+	//::MessageBox(NULL, L"main", L"t", MB_OK);
+	//AfxBeginThread(CPURun, this);
+	//AfxBeginThread(PPURun, this);
 	return TRUE;
 }
 
@@ -165,31 +166,6 @@ void Cnes_mfcApp::OnDebug()
 	dlgdbg = new CDebugDlg();
 	((CDebugDlg*)dlgdbg)->Create(IDD_ABOUTBOX);//创建一个非模态对话框    IDD_DIALOG2是我创建的一对话框ID
 	((CDebugDlg*)dlgdbg)->ShowWindow(SW_SHOWNORMAL);//显示非模态对话框
-}
-
-UINT Cnes_mfcApp::CPURun(LPVOID param) {
-	//一条扫描线时间
-	double line_time = 1 / 50 / 312; //每秒50帧 一帧312条扫描线
-	int line = 0; //第几条扫描线
-	LARGE_INTEGER freq, stime, ctime;
-	QueryPerformanceFrequency(&freq); //获取时钟频率
-	QueryPerformanceCounter(&stime); //113.6825
-	while (true) {
-		QueryPerformanceCounter(&ctime); //当前时间
-		double dim = (double)(ctime.QuadPart - stime.QuadPart) / (double)freq.QuadPart;
-		if (dim >= line_time) {
-			//执行cpu指令 113.6825周期
-			if (line < 240) {
-				//绘制扫描线
-			}
-			else {
-				//VBlank期间
-			}
-			if (++line == 312) //全部312扫描完成
-				line = 0;
-		}
-	}
-	return 0;
 }
 
 UINT Cnes_mfcApp::PPURun(LPVOID param) {

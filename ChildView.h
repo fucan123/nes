@@ -16,7 +16,7 @@ public:
 
 // ÌØĞÔ
 public:
-
+	CRect rect;
 // ²Ù×÷
 public:
 

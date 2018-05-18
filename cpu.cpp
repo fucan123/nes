@@ -85,6 +85,7 @@ void CPU::run() {
 }
 //执行 request_cycles要执行的周期
 void CPU::exec(int request_cycles) {
+	//MessageBox(NULL, L"EXEC START!", L"t", MB_OK);
 	int exec_cycles;
 	while (request_cycles > 0) {
 		ZERO_CYCLE();
@@ -97,6 +98,9 @@ void CPU::exec(int request_cycles) {
 CPU6502_CODE CPU::opcode(byte opcode) {
 	this->run_addr = R.PC;
 	sprintf(this->hex_str, "%02X ", opcode);
+	CString ts;
+	ts.Format(L"PC:%d", R.PC);
+	//MessageBox(NULL, ts, L"t", MB_OK);
 	//printf("opcode:0x%x\n", opcode);
 	opsize = 0;
 	switch (opcode) {
@@ -729,6 +733,7 @@ CPU6502_CODE CPU::opcode(byte opcode) {
 		sprintf(asm_str, "指令错误");
 		break;
 	}
+	//MessageBox(NULL, L"OP CODE END.", L"t", MB_OK);
 	this->printAsm();
 	R.PC += opsize;
 	return CERR;
@@ -836,6 +841,7 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 		break;
 	}
 	if (CPUSUC(err.code)) {
+		//MessageBox(NULL, L"OP SUCCES", L"t", MB_OK);
 		//地址0x2000-0x2007为PPU寄存器
 		if (addr >= 0x2000 && addr <= 0x2007) {
 			//MessageBox(NULL, L"CAO", L"t", MB_OK);
@@ -850,6 +856,9 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 		}
 		if (paddr != NULL)
 			*paddr = addr;
+	}
+	else {
+		//MessageBox(NULL, L"OP ERROR", L"t", MB_OK);
 	}
 	dumpError();
 	return v;
@@ -1192,6 +1201,7 @@ void CPU::LDA(CPU6502_MODE mode) {
 	this->setAsmOpStr("LDA");
 	DT = this->value(mode);
 	sprintf(remark, "装载到寄存器A");
+	//MessageBox(NULL, L"LDA", L"t", MB_OK);
 	if (CPUSUC(err.code)) { //指令有效
 		//M -> A
 		CString t;

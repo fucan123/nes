@@ -39,9 +39,9 @@ public:
 	//写入寄存器
 	void writeREG(byte addr, byte value);
 	//绘制背景
-	void showBG();
+	void getBG(byte images[]);
 	//绘制一条扫描线(分辨率256*240，一共240条) line=要绘制的线编号
-	void inline scanfLine(byte line);
+	void inline scanfLine(byte line, byte images[]);
 	int inline rgb(byte);
 };
 

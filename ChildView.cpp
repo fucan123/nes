@@ -50,14 +50,13 @@ BOOL CChildView::PreCreateWindow(CREATESTRUCT& cs)
 void CChildView::OnPaint() 
 {
 	CPaintDC dc(this); // 用于绘制的设备上下文
-	CRect rect;
 	GetClientRect(&rect);
 	CBrush brush;
 	brush.CreateHatchBrush(6, RGB(0, 0x41, 0x66));
 	dc.FillRect(rect, &brush);
 
-	g_PPU.dc = &dc;
-	g_PPU.showBG();
+	//g_PPU.dc = &dc;
+	//g_PPU.showBG();
 	
 	// TODO: 在此处添加消息处理程序代码
 	

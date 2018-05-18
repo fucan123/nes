@@ -28,6 +28,11 @@ static UINT indicators[] =
 	ID_INDICATOR_SCRL,
 };
 
+//CPU全局变量
+extern CPU g_CPU;
+//CPU全局变量
+extern PPU g_PPU;
+
 // CMainFrame 构造/析构
 
 CMainFrame::CMainFrame()
@@ -69,7 +74,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	/*m_wndToolBar.EnableDocking(CBRS_ALIGN_ANY);
 	EnableDocking(CBRS_ALIGN_ANY);
 	DockControlBar(&m_wndToolBar);*/
-
+	AfxBeginThread(Game, this);
 
 	return 0;
 }
@@ -119,5 +124,115 @@ BOOL CMainFrame::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO*
 
 	// 否则，执行默认处理
 	return CFrameWnd::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
+}
+
+UINT CMainFrame::Game(LPVOID param) {
+	Sleep(100);
+	CString ts;
+	ts.Format(L"PC:%x", g_CPU.R.PC);
+	//::MessageBox(NULL, ts, L"t", MB_OK);
+	CMainFrame* pFrame = (CMainFrame*)param;
+	CDC* dc = pFrame->m_wndView.GetDC();
+	CDC dcImage;
+	if (!dcImage.CreateCompatibleDC(dc)) {
+		::MessageBox(NULL, L"create failed", L"title", MB_OK);
+		return 0;
+	}
+	if (!dc) {
+		::MessageBox(NULL, L"!dc", L"title", MB_OK);
+	}
+	//::MessageBox(NULL, L"afx", L"title", MB_OK);
+	//::MessageBox(NULL, L"game", L"title", MB_OK);
+
+	/*CRect rect;
+	//GetClientRect(&rect);
+	CBrush brush;
+	brush.CreateHatchBrush(6, RGB(0, 0x41, 0x66));
+	//dc.FillRect(rect, &brush);
+
+	//MessageBox(L"start");
+	byte cb[256 * 240 * 4];
+	for (int i = 0; i < 256 * 240; i++) {
+		int index = i * 4;
+		cb[index + 0] = i & 0x0f;
+		cb[index + 1] = i & 0xf0;
+		cb[index + 2] = i & 0xff;
+		cb[index + 3] = 0;
+	}
+
+	CString ms;
+	CBitmap bm;
+	bm.CreateBitmap(256, 240, 1, 32, cb);
+	BITMAP  bmp;
+	bm.GetBitmap(&bmp);
+
+	ms.Format(L"w=%d,h=%d,p=%d,bc:%d,bits:%d,error:%d",
+		bmp.bmWidth, bmp.bmHeight, bmp.bmPlanes, bmp.bmBitsPixel, bmp.bmBits, GetLastError());
+	//MessageBox(ms);
+
+	CBitmap* pOldBitmap = dcImage.SelectObject(&bm);
+
+	dc->StretchBlt(0, 0, 256, 240, &dcImage, 0, 0, bmp.bmWidth, bmp.bmHeight, SRCCOPY);
+	//dc.BitBlt(10, 10, bmp.bmWidth, bmp.bmHeight, &dcImage, 0, 0, SRCCOPY);
+	// TODO: 在此处添加消息处理程序代码
+	dcImage.SelectObject(pOldBitmap);
+	return 0;*/
+	g_CPU.reset();
+	//一条扫描线时间
+	double line_time = 1 / 50 / 312; //每秒50帧 一帧312条扫描线
+	int line = 0; //第几条扫描线
+	LARGE_INTEGER freq, stime, ctime;
+	QueryPerformanceFrequency(&freq); //获取时钟频率
+	QueryPerformanceCounter(&stime); //113.6825
+	byte images[256 * 240 * 4];
+	memset(images, 0, sizeof(images));
+	int flag = 0;
+	while (false) {
+		if (g_CPU.pause && !g_CPU.step) {
+			continue;
+		}
+		QueryPerformanceCounter(&ctime); //当前时间
+		double dim = (double)(ctime.QuadPart - stime.QuadPart) / (double)freq.QuadPart;
+		if (dim >= line_time) {
+			if (g_CPU.step) {
+				g_CPU.exec(1);
+				g_CPU.step = false;
+				g_CPU.pause = true;
+			}
+			else {
+				g_CPU.exec(114);
+			}
+			
+			//执行cpu指令 113.6825周期
+			if (line < 240) {
+				g_PPU.scanfLine(line, images);
+				CBitmap bm;
+				bm.CreateBitmap(256, 240, 1, 32, images);
+				BITMAP  bmp;
+				bm.GetBitmap(&bmp);
+				CBitmap* pOldBitmap = dcImage.SelectObject(&bm);
+
+				int width = pFrame->m_wndView.rect.right - pFrame->m_wndView.rect.left;
+				int height = pFrame->m_wndView.rect.bottom - pFrame->m_wndView.rect.top;
+				dc->StretchBlt(0, 0, width, height, &dcImage, 0, 0, bmp.bmWidth, bmp.bmHeight, SRCCOPY);
+				//dc.BitBlt(10, 10, bmp.bmWidth, bmp.bmHeight, &dcImage, 0, 0, SRCCOPY);
+				// TODO: 在此处添加消息处理程序代码
+				dcImage.SelectObject(pOldBitmap);
+				//绘制扫描线
+			}
+			else {
+				//VBlank期间
+			}
+			if (++line == 312) //全部312扫描完成
+				line = 0;
+		}
+		CString ts;
+		ts.Format(L"flag:%d", flag);
+		//::MessageBox(NULL, ts, L"t", MB_OK);
+		flag++;
+		ts.Format(L"flag2:%d", flag);
+		//::MessageBox(NULL, ts, L"t", MB_OK);
+	}
+	return 0;
 }
 
