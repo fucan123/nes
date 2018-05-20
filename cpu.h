@@ -150,6 +150,9 @@ public:
 	char  hex_str[8];
 	char  asm_str[64];
 	char  remark[64];
+
+	int exec_opnum;
+	int opnum;
 public:
 	CListCtrl* clist;
 	HWND       dbgdlg;
@@ -161,14 +164,15 @@ public:
 	CPU();
 	void load(char*, size_t, char*, size_t);
 	void reset();
-	void run();
-	void exec(int request_cycles);
+	void run(int);
+	int exec(int request_cycles);
 
 	byte read(word addr);
 	CPU6502_CODE opcode(byte);
 	byte value(CPU6502_MODE, word* paddr=NULL);
 	void write(word addr, byte value);
 
+	void NMI();
 	void ADC(CPU6502_MODE);
 	void INC(CPU6502_MODE);
 	void INX();

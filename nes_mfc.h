@@ -19,6 +19,8 @@ class Cnes_mfcApp : public CWinApp
 {
 protected:
 	void *dlgdbg;
+	void *dlgcpumem;
+	void *dlgppumem;
 public:
 	
 	Cnes_mfcApp();
@@ -35,6 +37,8 @@ public:
 	afx_msg void OnDebug();
 	static UINT CPURun(LPVOID param);
 	static UINT PPURun(LPVOID param);
+	afx_msg void OnCPUMem();
+	afx_msg void OnPPUMem();
 };
 
 extern Cnes_mfcApp theApp;

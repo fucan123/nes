@@ -6,7 +6,9 @@
 #include "afxdialogex.h"
 #include "nes_mfc.h"
 #include "MainFrm.h"
-#include "CDebugDlg.hpp"
+#include "CDebugDlg.h"
+#include "CCpuMemDlg.h"
+#include "CPpuMemDlg.h"
 #include <iostream>
 
 #ifdef _DEBUG
@@ -31,6 +33,8 @@ typedef struct s_nes_header {
 
 BEGIN_MESSAGE_MAP(Cnes_mfcApp, CWinApp)
 	ON_BN_CLICKED(ID_DEBUG, &Cnes_mfcApp::OnDebug)
+	ON_COMMAND(ID_CPU_MEM, &Cnes_mfcApp::OnCPUMem)
+	ON_COMMAND(ID_PPU_MEM, &Cnes_mfcApp::OnPPUMem)
 END_MESSAGE_MAP()
 
 // Cnes_mfcApp 构造
@@ -166,6 +170,21 @@ void Cnes_mfcApp::OnDebug()
 	dlgdbg = new CDebugDlg();
 	((CDebugDlg*)dlgdbg)->Create(IDD_ABOUTBOX);//创建一个非模态对话框    IDD_DIALOG2是我创建的一对话框ID
 	((CDebugDlg*)dlgdbg)->ShowWindow(SW_SHOWNORMAL);//显示非模态对话框
+}
+
+void Cnes_mfcApp::OnCPUMem()
+{
+	dlgcpumem = new CCpuMemDlg();
+	((CCpuMemDlg*)dlgcpumem)->Create(IDD_DIALOG_CPUMEM);//创建一个非模态对话框    IDD_DIALOG2是我创建的一对话框ID
+	((CCpuMemDlg*)dlgcpumem)->ShowWindow(SW_SHOWNORMAL);//显示非模态对话框
+}
+
+
+void Cnes_mfcApp::OnPPUMem()
+{
+	dlgppumem = new CCpuMemDlg();
+	((CCpuMemDlg*)dlgppumem)->Create(IDD_DIALOG_PPUMEM);//创建一个非模态对话框    IDD_DIALOG2是我创建的一对话框ID
+	((CCpuMemDlg*)dlgppumem)->ShowWindow(SW_SHOWNORMAL);//显示非模态对话框
 }
 
 UINT Cnes_mfcApp::PPURun(LPVOID param) {

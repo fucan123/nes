@@ -3,7 +3,7 @@
 #include "ppu.h"
 
 #define VBLANK_FLAG 0x80
-#define SET_VBLANK()   REG[2] |= VBLANK_FLAG
+#define SET_VBLANK() REG[2] |= VBLANK_FLAG
 #define CLR_VBLANK() REG[2] &= (~VBLANK_FLAG)
 
 PPU::PPU() {
@@ -27,39 +27,91 @@ PPU::PPU() {
 		CAP_TBALE[i] |= (bit << 6);
 		//0-3(0), 4-7(2) 33-36(0)
 	}
-	dc = NULL;
+	IS_NMI = false;
 }
 
 void PPU::load(char* m, size_t size) {
 	memset(MEM, 0, 0x8000);
 	memcpy(MEM, m, size);
+	memset(SRAM, 0, 0xff + 1);
+	memset(REG, 0, 8);
+	memset(REG_FLAG, 0, 8);
+	REG6_ADDR = 0;
 }
 //读取寄存器
 byte PPU::readREG(byte addr) {
 	addr &= 0x07;
 	//MessageBox(NULL, L"READ PPU REG!", L"t", MB_OK);
 	byte value = REG[addr];
-	if (addr == 2) { //读端口2002 vblank位复位
-		CString ts;
-		ts.Format(L"2002:%x", value);
-		//MessageBox(NULL, ts, L"t", MB_OK);
-		if (value > 0) {
-			//MessageBox(NULL, ts, L"t", MB_OK);
-		}
-		
-		//MessageBox(NULL, ts, L"t", MB_OK);
+	switch (addr)
+	{
+	case 2: //读端口2002 vblank位复位
+		REG_FLAG[5] = 0; //复位
+		REG_FLAG[6] = 0; //复位
+		REG6_ADDR = 0;
 		//CLR_VBLANK();
+		break;
+	case 4: //读取精灵RAM
+		value = SRAM[REG[3]]; //寄存器编号3是SRAM地址
+		REG[3]++; //每次访问地址+1
+		break;
+	case 7: //读取VRAM内存 地址由6号寄存器设置
+		value = MEM[REG6_ADDR]; //读取VRAM内存
+		REG6_ADDR += (REG[0] & 0x04) ? 32 : 1; //第二位决定+32或+1
+		break;
+	default:
+		break;
 	}
-
 	return value;
 }
 //写入寄存器
 void PPU::writeREG(byte addr, byte value) {
 	addr &= 0x07;
-	if (addr == 2) {
-		//MessageBox(NULL, L"set vblank", L"t", MB_OK);
+	switch (addr)
+	{
+	case 4: //写精灵RAM
+		SRAM[REG[3]] = value; //写入SRAM
+		REG[3]++; //每次访问地址+1
+		break;
+	case 6: //设置访问VRAM的地址 第一次高8位 第二次低8位
+		if (!REG_FLAG[6]) { //写入高位
+			REG6_ADDR |= (((word)value) << 8) & 0xff00;
+			REG_FLAG[6] = 1;
+			if (value > 0x70) {
+				CString ts;
+				ts.Format(L"--, value:%x, addr:%x", value, REG6_ADDR);
+				MessageBox(NULL, ts, L"t", MB_OK);
+			}
+		}
+		else { //写入低位
+			REG6_ADDR |= value;
+			REG_FLAG[6] = 0;
+		}
+		if (REG6_ADDR > 0x8000) {
+			CString ts;
+			ts.Format(L"value:%x, addr:%x", value, REG6_ADDR);
+			MessageBox(NULL, ts, L"t", MB_OK);
+		}
+		break;
+	case 7:
+		if (REG6_ADDR > 0x8000) {
+			//MessageBox(NULL, L"FUCK", L"t", MB_OK);
+		}
+		MEM[REG6_ADDR] = value; //写入VRAM内存
+		REG6_ADDR += (REG[0] & 0x04) ? 32 : 1; //第二位决定+32或+1
+		break;
+	default:
+		REG[addr] = value;
+		if (addr == 0) {
+			//最高位控制是否响应NMI中断
+			IS_NMI = value & 0x80 ? true : false;
+		}
+		break;
 	}
-	REG[addr] = value;
+}
+//写入数据到精灵内存
+void PPU::dmaSRAM(byte* src) {
+	memcpy(SRAM, src, 0xff + 1);
 }
 
 void PPU::getBG(byte images[]) {
@@ -114,11 +166,12 @@ void PPU::scanfLine(byte line, byte images[]) {
 			//在调色板组中的位置
 			byte pos = (title >> i) & 0x03;
 			//获取颜色
-			byte color = this->rgb(*(col_addr + pos));
+			int color = this->rgb(*(col_addr + pos));
+			//color = RGB(0xff, 0x88, 0x33);
 			//填充画面
 			images[index++] = (color >> 16) & 0xff;
 			images[index++] = (color >> 8) & 0xff;
-			images[index++] = color & 0xff;
+			images[index++] = (color >> 0) & 0xff;
 			images[index++] = 0;
 			/*if (dc) {
 				CPen pen(PS_SOLID, 1, this->rgb(color) + line);//创建一个虚线线条，宽度为1，红色的画笔对象  
@@ -130,7 +183,7 @@ void PPU::scanfLine(byte line, byte images[]) {
 				dc->SelectObject(pOldPen);
 				pen.DeleteObject();
 				if (line == 60) {
-					//MessageBox(NULL, L"60", L"t", MB_OK);
+					MessageBox(NULL, L"60", L"t", MB_OK);
 				}
 			}*/
 			sx += 1;

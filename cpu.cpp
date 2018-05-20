@@ -45,6 +45,8 @@ CPU::CPU( ) {
 	memset(&err, 0, sizeof(err));
 	clist = NULL;
 	lrow = 0;
+	exec_opnum = 0;
+	opnum = 0;
 	pause = false;
 	step = false;
 	//printf("sizeof err:%d", sizeof(err));
@@ -73,8 +75,8 @@ void CPU::reset() {
 	opcode(MEM[R.PC]);*/
 }
 //运行
-void CPU::run() {
-	for (int i = 0; i < 3; i++) {
+void CPU::run(int num) {
+	for (int i = 0; i < num; i++) {
 		if (pause || step) {
 			break;
 		}
@@ -84,7 +86,7 @@ void CPU::run() {
 	}
 }
 //执行 request_cycles要执行的周期
-void CPU::exec(int request_cycles) {
+int CPU::exec(int request_cycles) {
 	//MessageBox(NULL, L"EXEC START!", L"t", MB_OK);
 	int exec_cycles;
 	while (request_cycles > 0) {
@@ -93,9 +95,11 @@ void CPU::exec(int request_cycles) {
 		request_cycles -= EXEC_CYCLE;
 		TOTAL_CYCLE += EXEC_CYCLE;
 	}
+	return opnum;
 }
 
 CPU6502_CODE CPU::opcode(byte opcode) {
+	opnum++;
 	this->run_addr = R.PC;
 	sprintf(this->hex_str, "%02X ", opcode);
 	CString ts;
@@ -785,11 +789,13 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 		break;
 	case M_X_ZERO:
 		addr = opd + R.X;
+		sprintf(str, "%02X", opd);
 		sprintf(hstr, "%02X", opd);
 		opsize = 2;
 		break;
 	case M_Y_ZERO:
 		addr = opd + R.Y;
+		sprintf(str, "%02X", opd);
 		sprintf(hstr, "%02X", opd);
 		opsize = 2;
 		break;
@@ -845,7 +851,11 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 		//地址0x2000-0x2007为PPU寄存器
 		if (addr >= 0x2000 && addr <= 0x2007) {
 			//MessageBox(NULL, L"CAO", L"t", MB_OK);
-			v = g_PPU.readREG(addr & 0x07);
+			v = 0;
+			if (asm_str[0] == 'L') {
+				//MessageBox(NULL, L"read reg ppu", L"title", MB_OK);
+				v = g_PPU.readREG(addr & 0x07);
+			}
 		}
 		else if (addr == 0x4000) {
 
@@ -888,12 +898,21 @@ void CPU::write(word addr, byte value) {
 		//MessageBox(NULL, t, L"title", MB_OK);
 		g_PPU.writeREG(addr & 0x07, value);
 	}
-	else if (addr == 0x4010) {
-
+	else if (addr == 0x4014) { //DMA方式复制到精灵RAM
+		g_PPU.dmaSRAM(&MEM[value]);
 	}
 	else {
 		MEM[addr] = value;
 	}
+}
+// NMI中断 发生在VBlank期间
+void CPU::NMI() {
+	//R.PC += 2; //此指令1个字节 +1是下一条指令
+	PUSH(R.PC >> 8); //高位先入栈 
+	PUSH(R.PC & 0xff); //低位后入栈
+	PUSH(R.P);
+	SET_FLAG(I_FLAG);
+	R.PC = MEM[NMI_VECTOR] | (MEM[NMI_VECTOR + 1] << 8);
 }
 /* ADC (NV----ZC) */
 void CPU::ADC(CPU6502_MODE mode) {
@@ -1016,6 +1035,7 @@ void CPU::ASL(CPU6502_MODE mode) {
 		TST_FLAG(R.A & 0x80, C_FLAG);
 		R.A <<= 1;
 		SET_ZN_FLAG(R.A);
+		opsize = 1;
 	}
 	else {
 		word addr;
@@ -1026,7 +1046,6 @@ void CPU::ASL(CPU6502_MODE mode) {
 		this->write(addr, (byte)DT);
 		SET_ZN_FLAG(DT);
 	}
-	opsize = 1;
 }
 /* LSR_A (N-----ZC) */
 void CPU::LSR(CPU6502_MODE mode) {
@@ -1036,6 +1055,7 @@ void CPU::LSR(CPU6502_MODE mode) {
 		TST_FLAG(R.A & 0x01, C_FLAG);
 		R.A >>= 1;
 		SET_ZN_FLAG(R.A);
+		opsize = 1;
 	}
 	else {
 		word addr;
@@ -1046,7 +1066,6 @@ void CPU::LSR(CPU6502_MODE mode) {
 		this->write(addr, (byte)DT);
 		SET_ZN_FLAG(DT);
 	}
-	opsize = 1;
 }
 /* ROL (N-----ZC) */
 void CPU::ROL(CPU6502_MODE mode) {
@@ -1062,6 +1081,7 @@ void CPU::ROL(CPU6502_MODE mode) {
 			R.A <<= 1;
 		}
 		SET_ZN_FLAG(R.A);
+		opsize = 1;
 	}
 	else {
 		word addr;
@@ -1078,7 +1098,6 @@ void CPU::ROL(CPU6502_MODE mode) {
 		this->write(addr, (byte)DT);
 		SET_ZN_FLAG(DT);
 	}
-	opsize = 1;
 }
 /* ROR (N-----ZC) */
 void CPU::ROR(CPU6502_MODE mode) {
@@ -1094,6 +1113,7 @@ void CPU::ROR(CPU6502_MODE mode) {
 			R.A >>= 1;
 		}
 		SET_ZN_FLAG(R.A);
+		opsize = 1;
 	}
 	else {
 		word addr;
@@ -1110,7 +1130,6 @@ void CPU::ROR(CPU6502_MODE mode) {
 		this->write(addr, (byte)DT);
 		SET_ZN_FLAG(DT);
 	}
-	opsize = 1;
 }
 /* BIT (NV----Z-) */
 void CPU::BIT(CPU6502_MODE mode) {
@@ -1152,6 +1171,8 @@ void CPU::RTS() {
 }
 // 强制进入中断 不可屏蔽
 void CPU::BRK() {
+	this->setAsmOpStr("BRK");
+	sprintf(remark, "进入中断");
 	R.PC++; //此指令1个字节 +1是下一条指令
 	PUSH(R.PC >> 8); //高位先入栈 
 	PUSH(R.PC & 0xff); //低位后入栈
@@ -1167,7 +1188,7 @@ void CPU::RTI() {
 	R.P = POP() | R_FLAG;
 	R.PC = POP(); //低位
 	R.PC |= POP() * 0x100; //高位
-	opsize = 1;
+	opsize = 0;
 }
 /* CMP (N-----ZC) */
 void CPU::CMP(CPU6502_MODE mode) {
@@ -1309,18 +1330,14 @@ void CPU::TYA() {
 void CPU::BCC() {
 	this->setAsmOpStr("BCC");
 	sprintf(remark, "跳转 C位为0");
-	if (!(R.P & C_FLAG)) {
-		this->BJMP();
-	}
+	this->BJMP(!(R.P & C_FLAG));
 	opsize = 2;
 }
 //C位为1 跳转
 void CPU::BCS() {
 	this->setAsmOpStr("BCS");
-	sprintf(remark, "跳转 C位不为0");
-	if ((R.P & C_FLAG)) {
-		this->BJMP();
-	}
+	sprintf(remark, "跳转 C位为1");
+	this->BJMP((R.P & C_FLAG));
 	opsize = 2;
 }
 //Z位为0 跳转
@@ -1332,7 +1349,7 @@ void CPU::BNE() {
 //Z位为1 跳转
 void CPU::BEQ() {
 	this->setAsmOpStr("BEQ");
-	sprintf(remark, "跳转 C位不为0");
+	sprintf(remark, "跳转 Z位为1");
 	this->BJMP((R.P & Z_FLAG));
 }
 //N位为0 跳转
@@ -1344,7 +1361,7 @@ void CPU::BPL() {
 //N位为1 跳转
 void CPU::BMI() {
 	this->setAsmOpStr("BMI");
-	sprintf(remark, "跳转 N位不为0");
+	sprintf(remark, "跳转 N位为1");
 	this->BJMP((R.P & N_FLAG));
 }
 //V位为0 跳转
@@ -1356,7 +1373,7 @@ void CPU::BVC() {
 //v位为1 跳转
 void CPU::BVS() {
 	this->setAsmOpStr("BVS");
-	sprintf(remark, "跳转 V位不为0");
+	sprintf(remark, "跳转 V位为1");
 	this->BJMP((R.P & V_FLAG));
 }
 //条件跳转
@@ -1489,7 +1506,8 @@ void CPU::setStep(bool r) {
 	step = r;
 	lrow++;
 	//printf("PC:0x%x\n", R.PC);
-	opcode(MEM[R.PC]);
+	if(step)
+		opcode(MEM[R.PC]);
 }
 
 void CPU::setAsmOpStr(const char* str) {
@@ -1500,14 +1518,23 @@ void CPU::setAsmOpStr(const char* str) {
 }
 
 void CPU::printAsm() {
-	if (clist) {
+	int dim = exec_opnum - opnum;
+	if (opnum > 9150) {
+		CString rs;
+		rs.Format(L"all num:%d, opnum:%d", exec_opnum, opnum);
+		//SetWindowTextW(GetDlgItem(dbgdlg, 1010), rs);
+	}
+	if (dim <= 100 && clist) {
 		CString ra, hs(hex_str), as(asm_str), rms(remark);
-		
 		ra.Format(L"%X:", run_addr);
 		//as.Format(L"%s", "fuck");
 		//::MessageBox(NULL, as, L"title", MB_OK);
 		/*****汇编输出列表*****/
+		if (clist->GetItemCount() > 100) {
+			clist->DeleteItem(0);
+		}
 		int row = clist->GetItemCount();
+		clist->SetItemCount(100);
 		clist->InsertItem(row, ra); //一定要先这样调用后面才显示
 		clist->SetItemText(row, 1, hs);
 		clist->SetItemText(row, 2, as);
