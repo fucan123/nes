@@ -182,7 +182,7 @@ void Cnes_mfcApp::OnCPUMem()
 
 void Cnes_mfcApp::OnPPUMem()
 {
-	dlgppumem = new CCpuMemDlg();
+	dlgppumem = new CPpuMemDlg();
 	((CCpuMemDlg*)dlgppumem)->Create(IDD_DIALOG_PPUMEM);//创建一个非模态对话框    IDD_DIALOG2是我创建的一对话框ID
 	((CCpuMemDlg*)dlgppumem)->ShowWindow(SW_SHOWNORMAL);//显示非模态对话框
 }

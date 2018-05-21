@@ -35,7 +35,7 @@ END_MESSAGE_MAP()
 BOOL CDebugDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
-
+	MessageBox(L"cdebug");
 	DWORD dwStyle = m_list.GetExtendedStyle();
 	dwStyle |= (LVS_EX_GRIDLINES | LVS_EX_HEADERDRAGDROP | LVS_REPORT );
 	m_list.SetExtendedStyle(dwStyle);
