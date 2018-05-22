@@ -4,9 +4,10 @@
 #define PPUH
 
 class PPU {
-protected:
+public:
 	//寄存器6号地址
 	word REG6_ADDR;
+	word REG7_INC;
 public:
 	//寄存器
 	byte REG[8];
@@ -27,10 +28,14 @@ public:
 	byte* SPRA;
 
 	//命名表0
-	byte* N_TABLE;
+	byte* N_TABLE[4];
 
 	//属性表0
-	byte* A_TABLE;
+	byte* A_TABLE[4];
+
+	byte N_TABLE_INDEX;
+
+	byte N_TABLE_V;
 
 	//背景调色板地址
 	byte* BGC_TABLE;
@@ -38,6 +43,8 @@ public:
 	//字模对应的属性编号[每画面有960个字幕]
 	byte  CAP_TBALE[960];
 
+	bool IS_SET_REG6;
+	bool IS_REG7_FIRST;
 	//是否可响应NMI中断
 	bool IS_NMI;
 public:
@@ -48,6 +55,8 @@ public:
 	byte readREG(byte addr);
 	//写入寄存器
 	void writeREG(byte addr, byte value);
+	//写入内存
+	void writeMEM(word addr, byte value);
 	//写入数据到精灵内存
 	void dmaSRAM(byte* src);
 	//绘制背景

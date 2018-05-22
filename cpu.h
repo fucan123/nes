@@ -153,6 +153,8 @@ public:
 
 	int exec_opnum;
 	int opnum;
+
+	bool test_reg6;
 public:
 	CListCtrl* clist;
 	HWND       dbgdlg;

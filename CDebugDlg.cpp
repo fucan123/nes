@@ -35,7 +35,6 @@ END_MESSAGE_MAP()
 BOOL CDebugDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
-	MessageBox(L"cdebug");
 	DWORD dwStyle = m_list.GetExtendedStyle();
 	dwStyle |= (LVS_EX_GRIDLINES | LVS_EX_HEADERDRAGDROP | LVS_REPORT );
 	m_list.SetExtendedStyle(dwStyle);
@@ -48,7 +47,7 @@ BOOL CDebugDlg::OnInitDialog()
 	g_CPU.dbgdlg = this->m_hWnd;
 	g_CPU.clist = &m_list;
 	//g_CPU.pause = true;
-	g_CPU.reset();
+	//g_CPU.reset();
 
 	//MessageBox(L"INIT");
 	return TRUE;

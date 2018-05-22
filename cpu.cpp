@@ -63,6 +63,9 @@ void CPU::reset() {
 	//REST（开机或复位）会在0xfffc和0xfffd此地址指向的空间寻找指令（0xfffc为低8位，0xfffd为高8位）
 	word opaddr = MEM[REST_VECTOR] | (MEM[REST_VECTOR + 1] << 8);
 	R.PC = opaddr;
+	CString xs;
+	xs.Format(L"rest %d p:%d", opnum, this->pause);
+	//MessageBox(NULL, xs, L"t", MB_OK);
 	//run();
 	//::MessageBox(NULL, pc, L"title", MB_OK);
 	
@@ -89,16 +92,41 @@ void CPU::run(int num) {
 int CPU::exec(int request_cycles) {
 	//MessageBox(NULL, L"EXEC START!", L"t", MB_OK);
 	int exec_cycles;
-	while (request_cycles > 0) {
+	while (opnum < exec_opnum && request_cycles > 0) {
+		CString xs;
 		ZERO_CYCLE();
+		if (g_PPU.REG6_ADDR == 0x3F00) {
+			test_reg6 = true;
+		}
+		if (test_reg6) {
+			CString ts;
+			ts.Format(L"EXEC:%X", g_PPU.REG6_ADDR);
+			//MessageBox(NULL, ts, L"t", MB_OK);
+		}
+		if (opnum >= 0 && opnum <= 39) {
+			xs.Format(L"%d p:%d", opnum, this->pause);
+			//MessageBox(NULL, xs, L"t", MB_OK);
+		}
+		//opnum++;
 		this->opcode(MEM[R.PC]);
+		//EXEC_CYCLE = 2;
 		request_cycles -= EXEC_CYCLE;
 		TOTAL_CYCLE += EXEC_CYCLE;
+		
+		xs.Format(L"all num:%d, opnum:%d",exec_opnum, opnum);
+		::SetWindowTextW(::GetDlgItem(dbgdlg, 1010), xs);
+		if (opnum = 30 && opnum <= 39) {
+			xs.Format(L"%d p:%d asm%s", opnum, this->pause, asm_str);
+			MessageBox(NULL, xs, L"t", MB_OK);
+		}
 	}
 	return opnum;
 }
 
 CPU6502_CODE CPU::opcode(byte opcode) {
+	CString xs;
+	xs.Format(L"opcode p:%d", this->pause);
+	MessageBox(NULL, xs, L"t", MB_OK);
 	opnum++;
 	this->run_addr = R.PC;
 	sprintf(this->hex_str, "%02X ", opcode);
@@ -633,10 +661,13 @@ CPU6502_CODE CPU::opcode(byte opcode) {
 		this->STA(M_X_ZERO);
 		ADD_CYCLE(4);
 		break;
-	case 0x8D: //STA 0x002B 绝对 3字节
+	case 0x8D: {//STA 0x002B 绝对 3字节
+		CString xs;
+		xs.Format(L"8D p:%d", this->pause);
+		MessageBox(NULL, xs, L"t", MB_OK);
 		this->STA(M_ABS);
 		ADD_CYCLE(4);
-		break;
+		break; }
 	case 0x9D: //STA 0x002B,X 绝对X 3字节
 		this->STA(M_X_ABS);
 		ADD_CYCLE(5);
@@ -894,9 +925,10 @@ void CPU::write(word addr, byte value) {
 	//地址0x2000-0x2007为PPU寄存器
 	if (addr >= 0x2000 && addr <= 0x2007) {
 		CString t;
-		t.Format(L"WRITE:%d", value);
-		//MessageBox(NULL, t, L"title", MB_OK);
+		
 		g_PPU.writeREG(addr & 0x07, value);
+		t.Format(L"WRITE:%d,p:%d,pause地址:%X", value, pause, &pause);
+		MessageBox(NULL, t, L"title", MB_OK);
 	}
 	else if (addr == 0x4014) { //DMA方式复制到精灵RAM
 		g_PPU.dmaSRAM(&MEM[value]);
@@ -947,6 +979,11 @@ void CPU::INC(CPU6502_MODE mode) {
 void CPU::INX() {
 	this->setAsmOpStr("INX");
 	sprintf(remark, "寄存器X+1");
+	if (g_PPU.REG6_ADDR) {
+		CString ts;
+		ts.Format(L"INX:%X", g_PPU.REG6_ADDR);
+		//MessageBox(NULL, ts, L"t", MB_OK);
+	}
 	//X + 1 -> X
 	R.X++;
 	SET_ZN_FLAG(R.X);
@@ -1221,14 +1258,14 @@ void CPU::CPY(CPU6502_MODE mode) {
 void CPU::LDA(CPU6502_MODE mode) {
 	this->setAsmOpStr("LDA");
 	DT = this->value(mode);
-	sprintf(remark, "装载到寄存器A");
+	sprintf(remark, "装载到寄存器A(%02X)", (byte)DT);
 	//MessageBox(NULL, L"LDA", L"t", MB_OK);
 	if (CPUSUC(err.code)) { //指令有效
 		//M -> A
 		CString t;
 		t.Format(L"DT:%d", DT);
 		//::MessageBoxW(NULL, t, L"Title", MB_OK);
-		R.A = DT;
+		R.A = (byte)DT;
 		SET_ZN_FLAG(R.A);
 	}
 }
@@ -1258,9 +1295,16 @@ void CPU::LDY(CPU6502_MODE mode) {
 void CPU::STA(CPU6502_MODE mode) {
 	this->setAsmOpStr("STA");
 	word addr;
+	CString xs;
+	xs.Format(L"STA 1 p:%d", this->pause, asm_str);
+	MessageBox(NULL, xs, L"t", MB_OK);
 	DT = this->value(mode, &addr);
-	sprintf(remark, "寄存器A->地址0x%04x", addr);
+	sprintf(remark, "寄存器A(%02X)到地址0x%04x", R.A, addr);
+	xs.Format(L"STA 2 p:%d", this->pause, asm_str);
+	MessageBox(NULL, xs, L"t", MB_OK);
 	this->write(addr, R.A);
+	xs.Format(L"STA 3 p:%d", this->pause, asm_str);
+	MessageBox(NULL, xs, L"t", MB_OK);
 }
 /* STX (--------) */
 void CPU::STX(CPU6502_MODE mode) {
@@ -1522,7 +1566,7 @@ void CPU::printAsm() {
 	if (opnum > 9150) {
 		CString rs;
 		rs.Format(L"all num:%d, opnum:%d", exec_opnum, opnum);
-		//SetWindowTextW(GetDlgItem(dbgdlg, 1010), rs);
+		SetWindowTextW(GetDlgItem(dbgdlg, 1010), rs);
 	}
 	if (dim <= 100 && clist) {
 		CString ra, hs(hex_str), as(asm_str), rms(remark);

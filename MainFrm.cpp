@@ -189,12 +189,17 @@ UINT CMainFrame::Game(LPVOID param) {
 	QueryPerformanceCounter(&stime); //113.6825
 	byte images[256 * 240 * 4];
 	memset(images, 0, sizeof(images));
+	CString xs;
+	xs.Format(L"thread p:%d", g_CPU.pause);
+	//::MessageBox(NULL, xs, L"t", MB_OK);
 	while (true) {
 		while (g_CPU.opnum < g_CPU.exec_opnum) {
+			xs.Format(L"thread %d p:%d", g_CPU.opnum, g_CPU.pause);
+			::MessageBox(NULL, xs, L"t", MB_OK);
 			if (g_CPU.pause && !g_CPU.step) {
 				CString tt;
 				tt.Format(L"pasue:%d, all num:%d, opnum:%d", g_CPU.pause, g_CPU.exec_opnum, g_CPU.opnum);
-				//::MessageBox(NULL, tt, L"title", MB_OK);
+				::MessageBox(NULL, tt, L"title", MB_OK);
 				continue;
 			}
 			//::MessageBox(NULL, tt, L"title", MB_OK);
@@ -223,7 +228,6 @@ UINT CMainFrame::Game(LPVOID param) {
 				else {
 					int num = g_CPU.exec(exec_cycles);
 				}
-				
 
 				//执行cpu指令 113.6825周期
 				if (line < 240) {
@@ -247,7 +251,7 @@ UINT CMainFrame::Game(LPVOID param) {
 			}
 		}
 		if (g_CPU.opnum > 0 && g_CPU.exec_opnum == g_CPU.opnum) {
-			::MessageBox(NULL, L"set 0", L"title", MB_OK);
+			//::MessageBox(NULL, L"set 0", L"title", MB_OK);
 			g_CPU.exec_opnum = 0;
 			g_CPU.opnum = 0;
 		}

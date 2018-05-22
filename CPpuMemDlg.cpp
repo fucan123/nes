@@ -70,15 +70,35 @@ UINT CPpuMemDlg::ShowMEM(LPVOID param) {
 			CString temp;
 			temp.Format(L"%02X     %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
 				i,
-				g_PPU.SPRA[i], g_PPU.SPRA[i + 1], g_PPU.SPRA[i + 2], g_PPU.SPRA[i + 3], g_PPU.SPRA[i + 4],
-				g_PPU.SPRA[i + 5], g_PPU.SPRA[i + 6], g_PPU.SPRA[i + 7], g_PPU.SPRA[i + 8], g_PPU.SPRA[i + 9],
-				g_PPU.SPRA[i + 10], g_PPU.SPRA[i + 11], g_PPU.SPRA[i + 12], g_PPU.SPRA[i + 13], g_PPU.SPRA[i + 14],
-				g_PPU.SPRA[i + 15]);
+				g_PPU.SRAM[i], g_PPU.SRAM[i + 1], g_PPU.SRAM[i + 2], g_PPU.SRAM[i + 3], g_PPU.SRAM[i + 4],
+				g_PPU.SRAM[i + 5], g_PPU.SRAM[i + 6], g_PPU.SRAM[i + 7], g_PPU.SRAM[i + 8], g_PPU.SRAM[i + 9],
+				g_PPU.SRAM[i + 10], g_PPU.SRAM[i + 11], g_PPU.SRAM[i + 12], g_PPU.SRAM[i + 13], g_PPU.SRAM[i + 14],
+				g_PPU.SRAM[i + 15]);
 			text += temp;
 		}
+		text += L"调色板\r\n";
+		text += L"----   00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F\r\n";
+		i = 0x3F00;
+		CString temp;
+		temp.Format(L"REG6 ADDR:%X\r\n", g_PPU.REG6_ADDR);
+		text += temp;
+
+		temp.Format(L"背景   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
+			g_PPU.MEM[i], g_PPU.MEM[i + 1], g_PPU.MEM[i + 2], g_PPU.MEM[i + 3], g_PPU.MEM[i + 4],
+			g_PPU.MEM[i + 5], g_PPU.MEM[i + 6], g_PPU.MEM[i + 7], g_PPU.MEM[i + 8], g_PPU.MEM[i + 9],
+			g_PPU.MEM[i + 10], g_PPU.MEM[i + 11], g_PPU.MEM[i + 12], g_PPU.MEM[i + 13], g_PPU.MEM[i + 14],
+			g_PPU.MEM[i + 15]);
+		text += temp; 
+		i = 0x3F10;
+		temp.Format(L"精灵   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
+			g_PPU.MEM[i], g_PPU.MEM[i + 1], g_PPU.MEM[i + 2], g_PPU.MEM[i + 3], g_PPU.MEM[i + 4],
+			g_PPU.MEM[i + 5], g_PPU.MEM[i + 6], g_PPU.MEM[i + 7], g_PPU.MEM[i + 8], g_PPU.MEM[i + 9],
+			g_PPU.MEM[i + 10], g_PPU.MEM[i + 11], g_PPU.MEM[i + 12], g_PPU.MEM[i + 13], g_PPU.MEM[i + 14],
+			g_PPU.MEM[i + 15]);
+		text += temp;
 		text += L"命名表/属性表\r\n";
 		text += L"----   00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F\r\n";
-		for (i = 0x2000; i < 0x7fff; i += 16) {
+		for (i = 0x2000; i < 0x27EF; i += 16) {
 			CString temp;
 			temp.Format(L"%04X   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
 				i,

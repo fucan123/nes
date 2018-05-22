@@ -9,8 +9,8 @@
 PPU::PPU() {
 	BGA     = MEM + 0x1000;
 	SPRA    = MEM + 0x0000;
-	N_TABLE = MEM + 0x2000;
-	A_TABLE = MEM + 0x23C0;
+	N_TABLE[0] = N_TABLE[1] = MEM + 0x2000;
+	A_TABLE[0] = A_TABLE[1] = MEM + 0x23C0;
 	BGC_TABLE = MEM + 0x3F00;
 	for (int i = 0; i < 960; i++) {
 		byte line = i >> 5; //除以32 每行32个字幕
@@ -27,6 +27,9 @@ PPU::PPU() {
 		CAP_TBALE[i] |= (bit << 6);
 		//0-3(0), 4-7(2) 33-36(0)
 	}
+	REG7_INC = 0;
+	IS_SET_REG6 = false;
+	IS_REG7_FIRST = true;
 	IS_NMI = false;
 }
 
@@ -36,6 +39,8 @@ void PPU::load(char* m, size_t size) {
 	memset(SRAM, 0, 0xff + 1);
 	memset(REG, 0, 8);
 	memset(REG_FLAG, 0, 8);
+	//memset(N_TABLE[0], 0x33, 1024);
+	//memset(BGC_TABLE, 33, 16);
 	REG6_ADDR = 0;
 }
 //读取寄存器
@@ -56,8 +61,15 @@ byte PPU::readREG(byte addr) {
 		REG[3]++; //每次访问地址+1
 		break;
 	case 7: //读取VRAM内存 地址由6号寄存器设置
-		value = MEM[REG6_ADDR]; //读取VRAM内存
-		REG6_ADDR += (REG[0] & 0x04) ? 32 : 1; //第二位决定+32或+1
+		value = MEM[REG6_ADDR + REG7_INC]; //读取VRAM内存
+		if (!IS_REG7_FIRST) { //第一次读的数据无效
+			REG7_INC += (REG[0] & 0x04) ? 32 : 1; //第二位决定+32或+1
+			if (IS_SET_REG6) {
+				REG7_INC = 0;
+				IS_SET_REG6 = false;
+			}
+		}
+		IS_REG7_FIRST = false;
 		break;
 	default:
 		break;
@@ -67,46 +79,139 @@ byte PPU::readREG(byte addr) {
 //写入寄存器
 void PPU::writeREG(byte addr, byte value) {
 	addr &= 0x07;
+	CString ts;
+	ts.Format(L"REG地址:%X", REG);
+	MessageBox(NULL, ts, L"t", MB_OK);
 	switch (addr)
 	{
 	case 4: //写精灵RAM
 		SRAM[REG[3]] = value; //写入SRAM
 		REG[3]++; //每次访问地址+1
 		break;
-	case 6: //设置访问VRAM的地址 第一次高8位 第二次低8位
+	case 5: {
+		CString ts;
+		ts.Format(L"REG5 value:%x", value);
+		//MessageBox(NULL, ts, L"t", MB_OK);
+		break;
+	}
+	case 6: { //设置访问VRAM的地址 第一次高8位 第二次低8位
 		if (!REG_FLAG[6]) { //写入高位
+			REG6_ADDR = 0;
 			REG6_ADDR |= (((word)value) << 8) & 0xff00;
 			REG_FLAG[6] = 1;
+			ts.Format(L"写入高位:%X, addr:%X, addr2:%X", value, REG6_ADDR, REG6_ADDR & 0xff00);
 			if (value > 0x70) {
 				CString ts;
-				ts.Format(L"--, value:%x, addr:%x", value, REG6_ADDR);
-				MessageBox(NULL, ts, L"t", MB_OK);
+				ts.Format(L"--, value:%x, addr:%x, addr2:%X", value, REG6_ADDR, REG6_ADDR & 0xff00);
+				//MessageBox(NULL, ts, L"t", MB_OK);
 			}
 		}
 		else { //写入低位
-			REG6_ADDR |= value;
+			
+			REG6_ADDR |= (value & 0xff);
 			REG_FLAG[6] = 0;
+			ts.Format(L"写入低位:%X, addr:%X", value, REG6_ADDR);
 		}
+		//MessageBox(NULL, ts, L"t", MB_OK);
 		if (REG6_ADDR > 0x8000) {
 			CString ts;
 			ts.Format(L"value:%x, addr:%x", value, REG6_ADDR);
 			MessageBox(NULL, ts, L"t", MB_OK);
 		}
-		break;
-	case 7:
+		CString ts;
+		ts.Format(L"REG6_ADDR:%X", REG6_ADDR);
+		//MessageBox(NULL, ts, L"t", MB_OK);
+		IS_SET_REG6 = true;
+		break; }
+	case 7: {
 		if (REG6_ADDR > 0x8000) {
 			//MessageBox(NULL, L"FUCK", L"t", MB_OK);
 		}
-		MEM[REG6_ADDR] = value; //写入VRAM内存
-		REG6_ADDR += (REG[0] & 0x04) ? 32 : 1; //第二位决定+32或+1
-		break;
+		if (value > 0) {
+			CString ts;
+			ts.Format(L"value:%x, addr:%x", value, REG6_ADDR);
+			//MessageBox(NULL, ts, L"t", MB_OK);
+		}
+		
+		this->writeMEM(REG6_ADDR + REG7_INC, value); //写入VRAM内存
+		if (REG6_ADDR + REG7_INC == 0x3F00) {
+			CString ts;
+			ts.Format(L"3F00");
+			//MessageBox(NULL, ts, L"t", MB_OK);
+		}
+		if (REG6_ADDR + REG7_INC) {
+			CString ts;
+			ts.Format(L"2007 addr:%X, value：%X, REG7_INC:%X", REG6_ADDR + REG7_INC, value, REG7_INC);
+			//MessageBox(NULL, ts, L"t", MB_OK);
+		}
+		if (IS_SET_REG6) {
+			REG7_INC = 0;
+			IS_SET_REG6 = false;
+		}
+		REG7_INC += (REG[0] & 0x04) ? 32 : 1; //第二位决定+32或+1
+		CString ts;
+		ts.Format(L"2007 REG7_INC:%X, REG6 ADDR:%X", REG7_INC, REG6_ADDR);
+		//MessageBox(NULL, ts, L"t", MB_OK);
+		break; }
 	default:
 		REG[addr] = value;
 		if (addr == 0) {
+			N_TABLE_INDEX = value & 0x03;
+			N_TABLE_V = value & 0x04 ? 1 : 0;
+			if (N_TABLE_INDEX > 0 || N_TABLE_V > 0) {
+				CString ts;
+				ts.Format(L"index:%d, v:%d", N_TABLE_INDEX, N_TABLE_V);
+				MessageBox(NULL, ts, L"t", MB_OK);
+			}
+			
+			if (value & 0x08) {
+				BGA = MEM + 0x0000;
+				SPRA = MEM + 0x1000;
+			}
+			if (value & 0x10) {
+				BGA = MEM + 0x1000;
+				SPRA = MEM + 0x0000;
+			}
+			if (N_TABLE_V) { //垂直镜像 
+				N_TABLE[0] = N_TABLE[2] = &MEM[0x2000];
+				N_TABLE[1] = N_TABLE[3] = &MEM[0x2400];
+				A_TABLE[0] = A_TABLE[2] = &MEM[0x23C0];
+				A_TABLE[1] = A_TABLE[3] = &MEM[0x27C0];
+			}
+			else { //水平镜像
+				N_TABLE[0] = N_TABLE[1] = &MEM[0x2000];
+				N_TABLE[2] = N_TABLE[3] = &MEM[0x2400];
+				A_TABLE[0] = A_TABLE[1] = &MEM[0x23C0];
+				A_TABLE[2] = A_TABLE[3] = &MEM[0x27C0];
+			}
 			//最高位控制是否响应NMI中断
 			IS_NMI = value & 0x80 ? true : false;
 		}
 		break;
+	}
+}
+//写入内存
+void PPU::writeMEM(word addr, byte value) {
+	if (addr >= 0x2800 && addr < 0x2C00) { //命名/属性表2(从0开始)地址
+		word dim = addr - 0x2800;
+		*(N_TABLE[2] + dim) = value;
+		if (dim < 0x10) {
+			CString ts;
+			ts.Format(L"2800 N_TABLE[2]=%X MEM[0x2000]=%X value:%X", N_TABLE[2], &MEM[0x2000], MEM[0x2000 + dim]);
+			//MessageBox(NULL, ts, L"t", MB_OK);
+		}
+		
+	}
+	else if (addr >= 0x2C00 && addr < 0x3000) { //命名/属性表3(从0开始)地址
+		word dim = addr - 0x2C00;
+		*(N_TABLE[3] + dim) = value;
+	}
+	else if (addr >= 0x3F00 && addr <= 0x3F0F) {
+		MEM[addr] = value;
+		MEM[addr & 0x000F | 0x3F10] = value; //镜像到0x3F1?
+	}
+	else {
+		MEM[addr] = value;
 	}
 }
 //写入数据到精灵内存
@@ -149,24 +254,39 @@ void PPU::scanfLine(byte line, byte images[]) {
 		//MessageBox(NULL, t, L"t", MB_OK);
 	}
 	int index = line * 256 * 4;
+	CString ts;
+	ts.Format(L"n:%d, e:%d", n, e);
+	//MessageBox(NULL, ts, L"t", MB_OK);
+	//N_TABLE_INDEX = 0;
 	while (n < e) {
 		//字模编号
-		byte tn = N_TABLE[n];
+		byte tn = N_TABLE[N_TABLE_INDEX][n];
 		//字幕起始地址
 		byte* addr = BGA + (tn * 16);
 		//此字模属性 低6位是属性编号
-		byte attr = A_TABLE[CAP_TBALE[n] & 0x3f];
+		byte attr = A_TABLE[N_TABLE_INDEX][CAP_TBALE[n] & 0x3f];
 		//颜色组
 		byte group = CAP_TBALE[tn] >> 6;
 		//背景颜色调色板地址 4组 每组4字节 共16字节
 		byte* col_addr = BGC_TABLE + (group * 4);
-		word title = *((word*)(addr + m));
-		//每两位表示一个像素在颜色组中的位置
-		for (byte i = 0; i < 16; i += 2) {
+		//默认颜色
+		byte def_color = *BGC_TABLE;
+		//低位字节
+		byte title_low = *(addr + m);
+		//高位字节
+		byte title_high = *(addr + m + 1);
+		//每两位表示一个像素在颜色组中的位置 [前8位是低位，后8位是高位]
+		for (int i = 7; i >= 0; i--) {
 			//在调色板组中的位置
-			byte pos = (title >> i) & 0x03;
+			byte pos  =  title_low >> i; //低位
+			     pos |= (title_high >> i) << 1; //高位
+				 pos &= 0x3; //只有两位
 			//获取颜色
-			int color = this->rgb(*(col_addr + pos));
+		    byte color_n = pos || 1 ? *(col_addr + pos) : 0x0D;
+			/*CString ts;
+			ts.Format(L"tl:%d, th:%d, tn:%d, color_n:%x", title_low, title_high, tn, color_n);
+			MessageBox(NULL, ts, L"t", MB_OK);*/
+			int color = this->rgb(color_n);
 			//color = RGB(0xff, 0x88, 0x33);
 			//填充画面
 			images[index++] = (color >> 16) & 0xff;
