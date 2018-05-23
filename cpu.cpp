@@ -281,7 +281,7 @@ CPU6502_CODE CPU::opcode(byte opcode) {
 		this->AND(M_X_IDA);
 		ADD_CYCLE(6);
 		break;
-	case 0x31: //SBC (0x2B),Y 间接变址Y 2字节
+	case 0x31: //AND (0x2B),Y 间接变址Y 2字节
 		this->AND(M_IDA_Y);
 		ADD_CYCLE(5);
 		break;
@@ -415,23 +415,23 @@ CPU6502_CODE CPU::opcode(byte opcode) {
 		break;
 	/****ROR******/
 	case 0x6A: //ROR A<<1 1字节
-		this->ROL(M_A);
+		this->ROR(M_A);
 		ADD_CYCLE(2);
 		break;
 	case 0x66: //ROR 0x2B 零页 2字节
-		this->ROL(M_ZERO);
+		this->ROR(M_ZERO);
 		ADD_CYCLE(5);
 		break;
 	case 0x76: //ROR 0x2B,X 零页X 2字节
-		this->ROL(M_X_ZERO);
+		this->ROR(M_X_ZERO);
 		ADD_CYCLE(6);
 		break;
 	case 0x6E: //ROR 0x002b 绝对 3字节
-		this->ROL(M_ABS);
+		this->ROR(M_ABS);
 		ADD_CYCLE(6);
 		break;
 	case 0x7E: //ROR 0x002b,X 绝对X 3字节
-		this->ROL(M_X_ABS);
+		this->ROR(M_X_ABS);
 		ADD_CYCLE(7);
 		break;
 	/******条件跳转指令******/
@@ -974,7 +974,7 @@ void CPU::INC(CPU6502_MODE mode) {
 	DT = this->value(mode, &addr); //获得要累加的值
 	if (CPUSUC(err.code)) { //指令有效
 		//M + 1 -> M
-		sprintf(remark, "0x%02x+1", DT);
+		sprintf(remark, "0x%02X+1", DT);
 		DT++;
 		//结果写入地址中
 		this->write(addr, (byte)DT);
@@ -1023,7 +1023,7 @@ void CPU::DEC(CPU6502_MODE mode) {
 	DT = this->value(mode, &addr); //获得要减的值
 	if (CPUSUC(err.code)) { //指令有效
 		//M - 1 -> M
-		sprintf(remark, "%d-1", DT);
+		sprintf(remark, "%X-1", DT);
 		DT--;
 		//结果写入地址中
 		this->write(addr, (byte)DT);
@@ -1050,7 +1050,7 @@ void CPU::DEY() {
 void CPU::AND(CPU6502_MODE mode) {
 	this->setAsmOpStr("AND");
 	DT = this->value(mode);
-	sprintf(remark, "寄存器A&0x%02x", DT);
+	sprintf(remark, "寄存器A&0x%02X", DT);
 	R.A &= (byte)DT;
 	SET_ZN_FLAG(R.A);
 }
@@ -1058,7 +1058,7 @@ void CPU::AND(CPU6502_MODE mode) {
 void CPU::EOR(CPU6502_MODE mode) {
 	this->setAsmOpStr("EOR");
 	DT = this->value(mode);
-	sprintf(remark, "寄存器A^0x%02x", DT);
+	sprintf(remark, "寄存器A^0x%02X", DT);
 	R.A ^= (byte)DT;
 	SET_ZN_FLAG(R.A);
 }
@@ -1066,7 +1066,7 @@ void CPU::EOR(CPU6502_MODE mode) {
 void CPU::ORA(CPU6502_MODE mode) {
 	this->setAsmOpStr("ORA");
 	DT = this->value(mode);
-	sprintf(remark, "寄存器A|%d", DT);
+	sprintf(remark, "寄存器A|%X", DT);
 	R.A |= (byte)DT;
 	SET_ZN_FLAG(R.A);
 }
@@ -1168,7 +1168,7 @@ void CPU::ROR(CPU6502_MODE mode) {
 		}
 		else {
 			TST_FLAG(R.A & 0x01, C_FLAG);
-			DT <<= 1;;
+			DT >>= 1;;
 		}
 		this->write(addr, (byte)DT);
 		SET_ZN_FLAG(DT);
