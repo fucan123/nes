@@ -76,11 +76,25 @@ UINT CPpuMemDlg::ShowMEM(LPVOID param) {
 				g_PPU.SRAM[i + 15]);
 			text += temp;
 		}
+
+		text += L"×ÖÄ£\r\n";
+		text += L"----   00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F\r\n";
+		for (i = 0x1000; i < 0x2000; i += 16) {
+			CString temp;
+			temp.Format(L"%04X   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
+				i,
+				g_PPU.MEM[i], g_PPU.MEM[i + 1], g_PPU.MEM[i + 2], g_PPU.MEM[i + 3], g_PPU.MEM[i + 4],
+				g_PPU.MEM[i + 5], g_PPU.MEM[i + 6], g_PPU.MEM[i + 7], g_PPU.MEM[i + 8], g_PPU.MEM[i + 9],
+				g_PPU.MEM[i + 10], g_PPU.MEM[i + 11], g_PPU.MEM[i + 12], g_PPU.MEM[i + 13], g_PPU.MEM[i + 14],
+				g_PPU.MEM[i + 15]);
+			//text += temp;
+		}
+
+		CString temp;
 		text += L"µ÷É«°å\r\n";
 		text += L"----   00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F\r\n";
 		i = 0x3F00;
-		CString temp;
-		temp.Format(L"REG6 ADDR:%X\r\n", g_PPU.REG6_ADDR);
+		temp.Format(L"REG6 ADDR:%X, REG7_INC:%X\r\n", g_PPU.REG6_ADDR, g_PPU.REG7_INC);
 		text += temp;
 
 		temp.Format(L"±³¾°   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",

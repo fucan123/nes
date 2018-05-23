@@ -132,7 +132,7 @@ BOOL Cnes_mfcApp::InitInstance()
 	memcpy(&header, tmp, sizeof(nes_header));
 
 	int mapper = (header.control1 >> 4) | (header.control2 & 0xf0);
-	int rom_size = header.rom_count * 0x4000;
+	int rom_size = header.rom_count * 0x4000 + header.vrom_count * 0x2000;
 	char* roms = new char[rom_size];
 	memcpy(roms, tmp + 16, rom_size);
 
@@ -144,7 +144,8 @@ BOOL Cnes_mfcApp::InitInstance()
 	}
 
 	g_CPU.load(m, 0xffff, m + header.rom_count * 0x4000, 0x2000);
-	g_PPU.load(m + header.rom_count * 0x4000, 0x2000);
+	g_PPU.load(roms + header.rom_count * 0x4000, 0x2000);
+	g_CPU.write(0x2000, 0x10);
 	//::MessageBox(NULL, L"main", L"t", MB_OK);
 	//AfxBeginThread(CPURun, this);
 	//AfxBeginThread(PPURun, this);

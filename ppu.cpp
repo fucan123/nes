@@ -81,7 +81,7 @@ void PPU::writeREG(byte addr, byte value) {
 	addr &= 0x07;
 	CString ts;
 	ts.Format(L"REG地址:%X", REG);
-	MessageBox(NULL, ts, L"t", MB_OK);
+	//MessageBox(NULL, ts, L"t", MB_OK);
 	switch (addr)
 	{
 	case 4: //写精灵RAM
@@ -89,9 +89,13 @@ void PPU::writeREG(byte addr, byte value) {
 		REG[3]++; //每次访问地址+1
 		break;
 	case 5: {
-		CString ts;
-		ts.Format(L"REG5 value:%x", value);
-		//MessageBox(NULL, ts, L"t", MB_OK);
+		SCROLL_REG[REG_FLAG[5]] = value;
+		if (value > 0) {
+			CString ts;
+			ts.Format(L"REG5 value:%x, FLAG:%d", value, REG_FLAG[5]);
+			//MessageBox(NULL, ts, L"t", MB_OK);
+		}
+		REG_FLAG[5] ^= 1;
 		break;
 	}
 	case 6: { //设置访问VRAM的地址 第一次高8位 第二次低8位
@@ -132,7 +136,10 @@ void PPU::writeREG(byte addr, byte value) {
 			ts.Format(L"value:%x, addr:%x", value, REG6_ADDR);
 			//MessageBox(NULL, ts, L"t", MB_OK);
 		}
-		
+		if (IS_SET_REG6) {
+			REG7_INC = 0;
+			IS_SET_REG6 = false;
+		}
 		this->writeMEM(REG6_ADDR + REG7_INC, value); //写入VRAM内存
 		if (REG6_ADDR + REG7_INC == 0x3F00) {
 			CString ts;
@@ -143,10 +150,6 @@ void PPU::writeREG(byte addr, byte value) {
 			CString ts;
 			ts.Format(L"2007 addr:%X, value：%X, REG7_INC:%X", REG6_ADDR + REG7_INC, value, REG7_INC);
 			//MessageBox(NULL, ts, L"t", MB_OK);
-		}
-		if (IS_SET_REG6) {
-			REG7_INC = 0;
-			IS_SET_REG6 = false;
 		}
 		REG7_INC += (REG[0] & 0x04) ? 32 : 1; //第二位决定+32或+1
 		CString ts;
@@ -161,7 +164,7 @@ void PPU::writeREG(byte addr, byte value) {
 			if (N_TABLE_INDEX > 0 || N_TABLE_V > 0) {
 				CString ts;
 				ts.Format(L"index:%d, v:%d", N_TABLE_INDEX, N_TABLE_V);
-				MessageBox(NULL, ts, L"t", MB_OK);
+				//MessageBox(NULL, ts, L"t", MB_OK);
 			}
 			
 			if (value & 0x08) {
@@ -197,7 +200,7 @@ void PPU::writeMEM(word addr, byte value) {
 		*(N_TABLE[2] + dim) = value;
 		if (dim < 0x10) {
 			CString ts;
-			ts.Format(L"2800 N_TABLE[2]=%X MEM[0x2000]=%X value:%X", N_TABLE[2], &MEM[0x2000], MEM[0x2000 + dim]);
+			ts.Format(L"2800 addr:%X, value:%X, SCROLL_REG:%x,%x", addr, value, SCROLL_REG[0], SCROLL_REG[1]);
 			//MessageBox(NULL, ts, L"t", MB_OK);
 		}
 		
@@ -208,7 +211,7 @@ void PPU::writeMEM(word addr, byte value) {
 	}
 	else if (addr >= 0x3F00 && addr <= 0x3F0F) {
 		MEM[addr] = value;
-		MEM[addr & 0x000F | 0x3F10] = value; //镜像到0x3F1?
+		//MEM[addr & 0x000F | 0x3F10] = value; //镜像到0x3F1?
 	}
 	else {
 		MEM[addr] = value;
@@ -242,13 +245,33 @@ void PPU::scanfLine(byte line, byte images[]) {
 	if (line == 0) {
 		CLR_VBLANK();
 	}
+	byte nt_index = N_TABLE_INDEX;
+	word line_t = line + SCROLL_REG[1];
+	if (line_t > 239) {
+		if (N_TABLE_INDEX == 0) {
+			nt_index = 2;
+		}
+		else if (N_TABLE_INDEX == 1) {
+			nt_index = 3;
+		}
+		else if (N_TABLE_INDEX == 2) {
+			nt_index = 0;
+		}
+		else if (N_TABLE_INDEX == 3) {
+			nt_index = 1;
+		}
+		line_t -= 240;
+		CString t;
+		t.Format(L"LINE T:%d, value:%X", line_t, N_TABLE[nt_index][100]);
+		//MessageBox(NULL, t, L"t", MB_OK);
+	}
 	//属于画面中哪个画面(属于命名表中几号编号) 一共8行 每行32个
-	word n = (line >> 3) * 32;
+	word n = (line_t >> 3) * 32;
 	//字模中开始地址 占2个字节 每个字模16字节
-	word m = (line & 0x07) * 2;
+	word m = (line_t & 0x07) * 2;
 	//一行32个字幕 sx=x开始坐标
 	word e = n + 32, sx = 0;
-	if (line == 60) {
+	if (line_t == 60) {
 		CString t;
 		t.Format(L"n=%d,m=%d,e=%d,line>>3=%d", n, m, e, line >> 3);
 		//MessageBox(NULL, t, L"t", MB_OK);
@@ -260,11 +283,11 @@ void PPU::scanfLine(byte line, byte images[]) {
 	//N_TABLE_INDEX = 0;
 	while (n < e) {
 		//字模编号
-		byte tn = N_TABLE[N_TABLE_INDEX][n];
+		byte tn = N_TABLE[nt_index][n];
 		//字幕起始地址
 		byte* addr = BGA + (tn * 16);
 		//此字模属性 低6位是属性编号
-		byte attr = A_TABLE[N_TABLE_INDEX][CAP_TBALE[n] & 0x3f];
+		byte attr = A_TABLE[nt_index][CAP_TBALE[n] & 0x3f];
 		//颜色组
 		byte group = CAP_TBALE[tn] >> 6;
 		//背景颜色调色板地址 4组 每组4字节 共16字节
@@ -281,13 +304,21 @@ void PPU::scanfLine(byte line, byte images[]) {
 			byte pos  =  title_low >> i; //低位
 			     pos |= (title_high >> i) << 1; //高位
 				 pos &= 0x3; //只有两位
+				 pos |= group << 2;
 			//获取颜色
-		    byte color_n = pos || 1 ? *(col_addr + pos) : 0x0D;
+		    byte color_n = pos || 1 ? *(BGC_TABLE + pos) : 0x0D;
+			if (line == 239 && SCROLL_REG[1] > (8 * 10)) {
+				CString ts;
+				ts.Format(L"addr:%04X,n:%d,SCROLL_REG:%d,line:%d,line_t:%d,pos:%d,color_n:%d,tn:%X,nt_index:%d,N_TABLE_INDEX:%d", 
+					0x2400 + n, n,SCROLL_REG[1], line, line_t, pos, color_n, tn, nt_index, N_TABLE_INDEX);
+				//MessageBox(NULL, ts, L"t", MB_OK);
+			}
+			//color_n = 0x3;
 			/*CString ts;
 			ts.Format(L"tl:%d, th:%d, tn:%d, color_n:%x", title_low, title_high, tn, color_n);
 			MessageBox(NULL, ts, L"t", MB_OK);*/
 			int color = this->rgb(color_n);
-			//color = RGB(0xff, 0x88, 0x33);
+			//color = RGB(0x80, 0x80, 0x80);
 			//填充画面
 			images[index++] = (color >> 16) & 0xff;
 			images[index++] = (color >> 8) & 0xff;

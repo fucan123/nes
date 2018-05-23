@@ -56,7 +56,7 @@ void CPU::load(char* m, size_t size, char* p, size_t psize) {
 	memcpy(MEM, m, size);
 	//桟段为0x100 - 0x1ff
 	STACK = MEM + 0x100;
-	memcpy(PPU, p, psize);
+	//memcpy(PPU, p, psize);
 }
 
 void CPU::reset() {
@@ -104,20 +104,20 @@ int CPU::exec(int request_cycles) {
 			//MessageBox(NULL, ts, L"t", MB_OK);
 		}
 		if (opnum >= 0 && opnum <= 39) {
-			xs.Format(L"%d p:%d", opnum, this->pause);
+			xs.Format(L"exec opnum:%d p:%d", opnum, this->pause);
 			//MessageBox(NULL, xs, L"t", MB_OK);
 		}
 		//opnum++;
 		this->opcode(MEM[R.PC]);
-		//EXEC_CYCLE = 2;
+		EXEC_CYCLE = 2;
 		request_cycles -= EXEC_CYCLE;
 		TOTAL_CYCLE += EXEC_CYCLE;
 		
 		xs.Format(L"all num:%d, opnum:%d",exec_opnum, opnum);
-		::SetWindowTextW(::GetDlgItem(dbgdlg, 1010), xs);
-		if (opnum = 30 && opnum <= 39) {
+		//::SetWindowTextW(::GetDlgItem(dbgdlg, 1010), xs);
+		if (opnum == 30 && opnum <= 39) {
 			xs.Format(L"%d p:%d asm%s", opnum, this->pause, asm_str);
-			MessageBox(NULL, xs, L"t", MB_OK);
+			//MessageBox(NULL, xs, L"t", MB_OK);
 		}
 	}
 	return opnum;
@@ -125,14 +125,15 @@ int CPU::exec(int request_cycles) {
 
 CPU6502_CODE CPU::opcode(byte opcode) {
 	CString xs;
-	xs.Format(L"opcode p:%d", this->pause);
-	MessageBox(NULL, xs, L"t", MB_OK);
+	xs.Format(L"opnum----%d", opnum);
+	//MessageBox(NULL, xs, L"t", MB_OK);
 	opnum++;
 	this->run_addr = R.PC;
 	sprintf(this->hex_str, "%02X ", opcode);
 	CString ts;
-	ts.Format(L"PC:%d", R.PC);
+	ts.Format(L"opnum:%d", opnum);
 	//MessageBox(NULL, ts, L"t", MB_OK);
+	//return CERR;
 	//printf("opcode:0x%x\n", opcode);
 	opsize = 0;
 	switch (opcode) {
@@ -664,7 +665,7 @@ CPU6502_CODE CPU::opcode(byte opcode) {
 	case 0x8D: {//STA 0x002B 绝对 3字节
 		CString xs;
 		xs.Format(L"8D p:%d", this->pause);
-		MessageBox(NULL, xs, L"t", MB_OK);
+		//MessageBox(NULL, xs, L"t", MB_OK);
 		this->STA(M_ABS);
 		ADD_CYCLE(4);
 		break; }
@@ -799,7 +800,7 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 	case M_X_ABS:
 		//第一个字节为低8位，第二个为高8位
 		addr  = opd | (opd2 << 8);
-		sprintf(str, "0x%04X, X", addr);
+		sprintf(str, "0x%04X,X[%X]", addr, MEM[addr + R.X]);
 		sprintf(hstr, "%02X%02X", opd, opd2);
 		addr += R.X;
 		opsize = 3;
@@ -807,7 +808,7 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 	case M_Y_ABS:
 		//第一个字节为低8位，第二个为高8位
 		addr  = opd | (opd2 << 8);;
-		sprintf(str, "0x%04X, Y", addr);
+		sprintf(str, "0x%04X,Y[%X]", addr, MEM[addr + R.Y]);
 		sprintf(hstr, "%02X", opd);
 		addr += R.Y;
 		opsize = 3;
@@ -860,7 +861,7 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 		//第一个字节为低8位，第二个为高8位
 		addr = MEM[opd] | ((MEM[opd + 1]) << 8);
 		addr += R.Y;
-		sprintf(str, "(0x%02X), Y", opd);
+		sprintf(str, "(0x%02X),Y", opd);
 		sprintf(hstr, "%02X", opd);
 		opsize = 2;
 		break;
@@ -927,11 +928,16 @@ void CPU::write(word addr, byte value) {
 		CString t;
 		
 		g_PPU.writeREG(addr & 0x07, value);
-		t.Format(L"WRITE:%d,p:%d,pause地址:%X", value, pause, &pause);
-		MessageBox(NULL, t, L"title", MB_OK);
+		t.Format(L"WRITE:%d,p:%d,pause地址:%X, REG地址:%X, CPU:%X=PPU:%X, REG6_ADDR:%X, REG7_INC:%X, opnum:%X", value, pause, &pause, &g_PPU.REG[0],
+		    this, &g_PPU, &g_PPU.REG6_ADDR, &g_PPU.REG7_INC, &opnum);
+		if (addr == 0x2006 && value == 0x28) {
+			t.Format(L"asm str:%s", asm_str);
+			//MessageBox(NULL, t, L"title", MB_OK);
+		}
+		//MessageBox(NULL, t, L"title", MB_OK);
 	}
 	else if (addr == 0x4014) { //DMA方式复制到精灵RAM
-		g_PPU.dmaSRAM(&MEM[value]);
+		g_PPU.dmaSRAM(&MEM[(value * 0x100) & 0xffff]);
 	}
 	else {
 		MEM[addr] = value;
@@ -1045,7 +1051,7 @@ void CPU::AND(CPU6502_MODE mode) {
 	this->setAsmOpStr("AND");
 	DT = this->value(mode);
 	sprintf(remark, "寄存器A&0x%02x", DT);
-	R.A &= DT;
+	R.A &= (byte)DT;
 	SET_ZN_FLAG(R.A);
 }
 /* EOR (N-----Z-) */
@@ -1053,7 +1059,7 @@ void CPU::EOR(CPU6502_MODE mode) {
 	this->setAsmOpStr("EOR");
 	DT = this->value(mode);
 	sprintf(remark, "寄存器A^0x%02x", DT);
-	R.A ^= DT;
+	R.A ^= (byte)DT;
 	SET_ZN_FLAG(R.A);
 }
 /* ORA (N-----Z-) */
@@ -1061,7 +1067,7 @@ void CPU::ORA(CPU6502_MODE mode) {
 	this->setAsmOpStr("ORA");
 	DT = this->value(mode);
 	sprintf(remark, "寄存器A|%d", DT);
-	R.A |= DT;
+	R.A |= (byte)DT;
 	SET_ZN_FLAG(R.A);
 }
 /* ASL (N-----ZC) */
@@ -1276,7 +1282,7 @@ void CPU::LDX(CPU6502_MODE mode) {
 	DT = this->value(mode);
 	if (CPUSUC(err.code)) { //指令有效
 		//M -> X
-		R.X = DT;
+		R.X = (byte)DT;
 		SET_ZN_FLAG(R.X);
 	}
 }
@@ -1287,7 +1293,7 @@ void CPU::LDY(CPU6502_MODE mode) {
 	DT = this->value(mode);
 	if (CPUSUC(err.code)) { //指令有效
 		//M -> Y
-		R.Y = DT;
+		R.Y = (byte)DT;
 		SET_ZN_FLAG(R.Y);
 	}
 }
@@ -1297,14 +1303,14 @@ void CPU::STA(CPU6502_MODE mode) {
 	word addr;
 	CString xs;
 	xs.Format(L"STA 1 p:%d", this->pause, asm_str);
-	MessageBox(NULL, xs, L"t", MB_OK);
+	//MessageBox(NULL, xs, L"t", MB_OK);
 	DT = this->value(mode, &addr);
 	sprintf(remark, "寄存器A(%02X)到地址0x%04x", R.A, addr);
 	xs.Format(L"STA 2 p:%d", this->pause, asm_str);
-	MessageBox(NULL, xs, L"t", MB_OK);
+	//MessageBox(NULL, xs, L"t", MB_OK);
 	this->write(addr, R.A);
 	xs.Format(L"STA 3 p:%d", this->pause, asm_str);
-	MessageBox(NULL, xs, L"t", MB_OK);
+	//MessageBox(NULL, xs, L"t", MB_OK);
 }
 /* STX (--------) */
 void CPU::STX(CPU6502_MODE mode) {
@@ -1566,7 +1572,7 @@ void CPU::printAsm() {
 	if (opnum > 9150) {
 		CString rs;
 		rs.Format(L"all num:%d, opnum:%d", exec_opnum, opnum);
-		SetWindowTextW(GetDlgItem(dbgdlg, 1010), rs);
+		//SetWindowTextW(GetDlgItem(dbgdlg, 1010), rs);
 	}
 	if (dim <= 100 && clist) {
 		CString ra, hs(hex_str), as(asm_str), rms(remark);

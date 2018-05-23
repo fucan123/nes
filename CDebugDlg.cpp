@@ -47,7 +47,7 @@ BOOL CDebugDlg::OnInitDialog()
 	g_CPU.dbgdlg = this->m_hWnd;
 	g_CPU.clist = &m_list;
 	//g_CPU.pause = true;
-	//g_CPU.reset();
+	g_CPU.reset();
 
 	//MessageBox(L"INIT");
 	return TRUE;

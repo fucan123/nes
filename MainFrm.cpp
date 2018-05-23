@@ -194,8 +194,8 @@ UINT CMainFrame::Game(LPVOID param) {
 	//::MessageBox(NULL, xs, L"t", MB_OK);
 	while (true) {
 		while (g_CPU.opnum < g_CPU.exec_opnum) {
-			xs.Format(L"thread %d p:%d", g_CPU.opnum, g_CPU.pause);
-			::MessageBox(NULL, xs, L"t", MB_OK);
+			//xs.Format(L"thread %d p:%d", g_CPU.opnum, g_CPU.pause);
+			//::MessageBox(NULL, xs, L"t", MB_OK);
 			if (g_CPU.pause && !g_CPU.step) {
 				CString tt;
 				tt.Format(L"pasue:%d, all num:%d, opnum:%d", g_CPU.pause, g_CPU.exec_opnum, g_CPU.opnum);
@@ -240,7 +240,7 @@ UINT CMainFrame::Game(LPVOID param) {
 
 					int width = pFrame->m_wndView.rect.right - pFrame->m_wndView.rect.left;
 					int height = pFrame->m_wndView.rect.bottom - pFrame->m_wndView.rect.top;
-					dc->StretchBlt(0, 0, width, height, &dcImage, 0, 0, bmp.bmWidth, bmp.bmHeight, SRCCOPY);
+					dc->StretchBlt(0, 0, 256, 240, &dcImage, 0, 0, bmp.bmWidth, bmp.bmHeight, SRCCOPY);
 					//dc.BitBlt(10, 10, bmp.bmWidth, bmp.bmHeight, &dcImage, 0, 0, SRCCOPY);
 					// TODO: 在此处添加消息处理程序代码
 					dcImage.SelectObject(pOldBitmap);

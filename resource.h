@@ -22,6 +22,7 @@
 #define IDC_LIST1                       1011
 #define IDC_EDIT1                       1017
 #define IDC_EDIT_PPUMEM                 1017
+#define IDC_EDIT_CPUMEM                 1017
 #define ID_32771                        32771
 #define ID_DEBUG                        32772
 #define ID_CPU32773                     32773

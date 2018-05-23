@@ -15,6 +15,8 @@ public:
 	//寄存器标志
 	byte REG_FLAG[8];
 
+	byte SCROLL_REG[2];
+
 	//所有PPU内存
 	byte  MEM[0x7fff + 1];
 
