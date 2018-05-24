@@ -120,7 +120,7 @@ BOOL Cnes_mfcApp::InitInstance()
 	pFrame->UpdateWindow();
 
 	struct stat st;
-	FILE* fp = fopen("tk.nes", "r");
+	FILE* fp = fopen("xmf.nes", "r");
 	if (!fp) {
 	}
 	fstat(_fileno(fp), &st);
@@ -145,7 +145,7 @@ BOOL Cnes_mfcApp::InitInstance()
 
 	g_CPU.load(m, 0xffff, m + header.rom_count * 0x4000, 0x2000);
 	g_PPU.load(roms + header.rom_count * 0x4000, 0x2000);
-	g_CPU.write(0x2000, 0x10);
+	//g_CPU.write(0x2000, 0x10);
 	//::MessageBox(NULL, L"main", L"t", MB_OK);
 	//AfxBeginThread(CPURun, this);
 	//AfxBeginThread(PPURun, this);

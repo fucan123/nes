@@ -39,6 +39,7 @@ void PPU::load(char* m, size_t size) {
 	memset(SRAM, 0, 0xff + 1);
 	memset(REG, 0, 8);
 	memset(REG_FLAG, 0, 8);
+	REG_FLAG[5] = 1;
 	//memset(N_TABLE[0], 0x33, 1024);
 	//memset(BGC_TABLE, 33, 16);
 	REG6_ADDR = 0;
@@ -90,6 +91,9 @@ void PPU::writeREG(byte addr, byte value) {
 		break;
 	case 5: {
 		SCROLL_REG[REG_FLAG[5]] = value;
+		if (REG_FLAG[5] && value > 239) {
+			SCROLL_REG[1] = 239;
+		}
 		if (value > 0) {
 			CString ts;
 			ts.Format(L"REG5 value:%x, FLAG:%d", value, REG_FLAG[5]);
@@ -268,7 +272,7 @@ void PPU::scanfLine(byte line, byte images[]) {
 	//属于画面中哪个画面(属于命名表中几号编号) 一共8行 每行32个
 	word n = (line_t >> 3) * 32;
 	//字模中开始地址 占2个字节 每个字模16字节
-	word m = (line_t & 0x07) * 2;
+	word m = (line_t & 0x07);
 	//一行32个字幕 sx=x开始坐标
 	word e = n + 32, sx = 0;
 	if (line_t == 60) {
@@ -289,7 +293,13 @@ void PPU::scanfLine(byte line, byte images[]) {
 		//此字模属性 低6位是属性编号
 		byte attr = A_TABLE[nt_index][CAP_TBALE[n] & 0x3f];
 		//颜色组
-		byte group = CAP_TBALE[tn] >> 6;
+		if ((attr)) {
+			CString ts;
+			ts.Format(L"attr:%0X", attr);
+			//MessageBox(NULL, ts, L"t", MB_OK);
+		}
+		byte group = (attr >> ((CAP_TBALE[n] >> 6) << 1)) & 0x03;
+		//group = CAP_TBALE[n] >> 6;
 		//背景颜色调色板地址 4组 每组4字节 共16字节
 		byte* col_addr = BGC_TABLE + (group * 4);
 		//默认颜色
@@ -297,20 +307,30 @@ void PPU::scanfLine(byte line, byte images[]) {
 		//低位字节
 		byte title_low = *(addr + m);
 		//高位字节
-		byte title_high = *(addr + m + 1);
+		byte title_high = *(addr + m + 8);
 		//每两位表示一个像素在颜色组中的位置 [前8位是低位，后8位是高位]
 		for (int i = 7; i >= 0; i--) {
 			//在调色板组中的位置
-			byte pos  =  title_low >> i; //低位
-			     pos |= (title_high >> i) << 1; //高位
-				 pos &= 0x3; //只有两位
-				 pos |= group << 2;
-			//获取颜色
-		    byte color_n = pos || 1 ? *(BGC_TABLE + pos) : 0x0D;
+			byte pos  =  (title_low >> i)  & 0x01; //低位
+			     pos |= ((title_high >> i) & 0x01) << 1; //高位
+				 pos &= 0x3; //只有两位 
+			//获取颜色 *(BGC_TABLE + pos) 
+		    byte color_n = 0x0D;
+			if (pos) {
+				//if (pos == 0x1 || pos == 0x2) pos = 0x3;
+				pos |= group << 2;
+				color_n = *(BGC_TABLE + pos);
+			}
 			if (line == 239 && SCROLL_REG[1] > (8 * 10)) {
 				CString ts;
 				ts.Format(L"addr:%04X,n:%d,SCROLL_REG:%d,line:%d,line_t:%d,pos:%d,color_n:%d,tn:%X,nt_index:%d,N_TABLE_INDEX:%d", 
 					0x2400 + n, n,SCROLL_REG[1], line, line_t, pos, color_n, tn, nt_index, N_TABLE_INDEX);
+				//MessageBox(NULL, ts, L"t", MB_OK);
+			}
+			if (0 && (tn == 0x5E)) {
+				CString ts;
+				ts.Format(L"L:%0X,H:%0X,ADDR:%04X,POS:%d,I:%d,t:%d,group:%d", title_low, title_high, 0x1000 + (tn * 16), pos, i,
+					(title_high >> i) & 0x01, group);
 				//MessageBox(NULL, ts, L"t", MB_OK);
 			}
 			//color_n = 0x3;

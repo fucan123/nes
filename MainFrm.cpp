@@ -240,7 +240,7 @@ UINT CMainFrame::Game(LPVOID param) {
 
 					int width = pFrame->m_wndView.rect.right - pFrame->m_wndView.rect.left;
 					int height = pFrame->m_wndView.rect.bottom - pFrame->m_wndView.rect.top;
-					dc->StretchBlt(0, 0, 256, 240, &dcImage, 0, 0, bmp.bmWidth, bmp.bmHeight, SRCCOPY);
+					dc->StretchBlt(0, 0, width, height, &dcImage, 0, 0, bmp.bmWidth, bmp.bmHeight, SRCCOPY);
 					//dc.BitBlt(10, 10, bmp.bmWidth, bmp.bmHeight, &dcImage, 0, 0, SRCCOPY);
 					// TODO: 在此处添加消息处理程序代码
 					dcImage.SelectObject(pOldBitmap);

@@ -94,7 +94,8 @@ UINT CPpuMemDlg::ShowMEM(LPVOID param) {
 		text += L"µ÷É«°å\r\n";
 		text += L"----   00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F\r\n";
 		i = 0x3F00;
-		temp.Format(L"REG6 ADDR:%X, REG7_INC:%X\r\n", g_PPU.REG6_ADDR, g_PPU.REG7_INC);
+		temp.Format(L"REG6 ADDR:%X, REG7_INC:%X, N_TABLE_V:%d, N_TABLE_INDEX:%d, SCROLL_REG:%d-%d\r\n", 
+			g_PPU.REG6_ADDR, g_PPU.REG7_INC, g_PPU.N_TABLE_V, g_PPU.N_TABLE_INDEX, g_PPU.SCROLL_REG[0], g_PPU.SCROLL_REG[1]);
 		text += temp;
 
 		temp.Format(L"±³¾°   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",

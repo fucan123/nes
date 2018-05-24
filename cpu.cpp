@@ -28,7 +28,7 @@
 // 清除标志位
 #define CLR_FLAG(V) { R.P &= ~(V); }
 // 设置ZN标志位
-#define	SET_ZN_FLAG(V)	{ R.P &= ~(Z_FLAG|N_FLAG); if((V)==0){ R.P |= Z_FLAG; } if((V)>0x7f){ R.P |= N_FLAG; } }
+#define	SET_ZN_FLAG(V)	{ R.P &= ~(Z_FLAG|N_FLAG); if(((V)&0xff)==0){ R.P |= Z_FLAG; } if((V)>0x7f){ R.P |= N_FLAG; } }
 // 条件成立，设置标志位
 #define	TST_FLAG(F,V)	{ R.P &= ~(V); if((F)) R.P |= (V); }
 //入栈
@@ -415,23 +415,23 @@ CPU6502_CODE CPU::opcode(byte opcode) {
 		break;
 	/****ROR******/
 	case 0x6A: //ROR A<<1 1字节
-		this->ROL(M_A);
+		this->ROR(M_A);
 		ADD_CYCLE(2);
 		break;
 	case 0x66: //ROR 0x2B 零页 2字节
-		this->ROL(M_ZERO);
+		this->ROR(M_ZERO);
 		ADD_CYCLE(5);
 		break;
 	case 0x76: //ROR 0x2B,X 零页X 2字节
-		this->ROL(M_X_ZERO);
+		this->ROR(M_X_ZERO);
 		ADD_CYCLE(6);
 		break;
 	case 0x6E: //ROR 0x002b 绝对 3字节
-		this->ROL(M_ABS);
+		this->ROR(M_ABS);
 		ADD_CYCLE(6);
 		break;
 	case 0x7E: //ROR 0x002b,X 绝对X 3字节
-		this->ROL(M_X_ABS);
+		this->ROR(M_X_ABS);
 		ADD_CYCLE(7);
 		break;
 	/******条件跳转指令******/
@@ -913,8 +913,8 @@ byte CPU::read(word addr) {
 		//MessageBox(NULL, L"PPU READ", L"title", MB_OK);
 		return g_PPU.readREG(addr & 0x07);
 	}
-	else if (addr == 0x4010) {
-		return 0;
+	else if (addr == 0x4016 || addr == 0x4017) {
+		return 0x40;
 	}
 	else {
 		return MEM[addr & 0xffff];
@@ -1023,7 +1023,7 @@ void CPU::DEC(CPU6502_MODE mode) {
 	DT = this->value(mode, &addr); //获得要减的值
 	if (CPUSUC(err.code)) { //指令有效
 		//M - 1 -> M
-		sprintf(remark, "%d-1", DT);
+		sprintf(remark, "%02X-1=%02X", DT, DT - 1);
 		DT--;
 		//结果写入地址中
 		this->write(addr, (byte)DT);
@@ -1135,7 +1135,7 @@ void CPU::ROL(CPU6502_MODE mode) {
 			DT = (DT << 1) | 0x01;
 		}
 		else {
-			TST_FLAG(R.A & 0x80, C_FLAG);
+			TST_FLAG(DT & 0x80, C_FLAG);
 			DT <<= 1;;
 		}
 		this->write(addr, (byte)DT);
@@ -1167,8 +1167,8 @@ void CPU::ROR(CPU6502_MODE mode) {
 			DT = (DT >> 1) | 0x80;
 		}
 		else {
-			TST_FLAG(R.A & 0x01, C_FLAG);
-			DT <<= 1;;
+			TST_FLAG(DT & 0x01, C_FLAG);
+			DT >>= 1;
 		}
 		this->write(addr, (byte)DT);
 		SET_ZN_FLAG(DT);
