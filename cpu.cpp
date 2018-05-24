@@ -54,6 +54,7 @@ CPU::CPU( ) {
 
 void CPU::load(char* m, size_t size, char* p, size_t psize) {
 	memcpy(MEM, m, size);
+	MEM[0x4016] = MEM[0x4017] = 0x40;
 	//桟段为0x100 - 0x1ff
 	STACK = MEM + 0x100;
 	//memcpy(PPU, p, psize);
@@ -914,7 +915,7 @@ byte CPU::read(word addr) {
 		return g_PPU.readREG(addr & 0x07);
 	}
 	else if (addr == 0x4016 || addr == 0x4017) {
-		return 0x40;
+		return MEM[addr & 0xffff];
 	}
 	else {
 		return MEM[addr & 0xffff];
@@ -939,7 +940,15 @@ void CPU::write(word addr, byte value) {
 	else if (addr == 0x4014) { //DMA方式复制到精灵RAM
 		g_PPU.dmaSRAM(&MEM[(value * 0x100) & 0xffff]);
 	}
+	else if (addr == 0x4016 || addr == 0x4017) {
+		MEM[addr] = 0x40;
+	}
 	else {
+		if (addr == 0x4017) {
+			CString t;
+			t.Format(L"4017=%X", value);
+			MessageBox(NULL, t, L"title", MB_OK);
+		}
 		MEM[addr] = value;
 	}
 }
@@ -1023,11 +1032,7 @@ void CPU::DEC(CPU6502_MODE mode) {
 	DT = this->value(mode, &addr); //获得要减的值
 	if (CPUSUC(err.code)) { //指令有效
 		//M - 1 -> M
-<<<<<<< HEAD
-		sprintf(remark, "%X-1", DT);
-=======
 		sprintf(remark, "%02X-1=%02X", DT, DT - 1);
->>>>>>> d4dac0c6d3f20eea2bf338ad21b263fbf6193f5b
 		DT--;
 		//结果写入地址中
 		this->write(addr, (byte)DT);
@@ -1171,13 +1176,8 @@ void CPU::ROR(CPU6502_MODE mode) {
 			DT = (DT >> 1) | 0x80;
 		}
 		else {
-<<<<<<< HEAD
-			TST_FLAG(R.A & 0x01, C_FLAG);
-			DT >>= 1;;
-=======
 			TST_FLAG(DT & 0x01, C_FLAG);
 			DT >>= 1;
->>>>>>> d4dac0c6d3f20eea2bf338ad21b263fbf6193f5b
 		}
 		this->write(addr, (byte)DT);
 		SET_ZN_FLAG(DT);

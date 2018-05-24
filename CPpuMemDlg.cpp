@@ -87,7 +87,7 @@ UINT CPpuMemDlg::ShowMEM(LPVOID param) {
 				g_PPU.MEM[i + 5], g_PPU.MEM[i + 6], g_PPU.MEM[i + 7], g_PPU.MEM[i + 8], g_PPU.MEM[i + 9],
 				g_PPU.MEM[i + 10], g_PPU.MEM[i + 11], g_PPU.MEM[i + 12], g_PPU.MEM[i + 13], g_PPU.MEM[i + 14],
 				g_PPU.MEM[i + 15]);
-			//text += temp;
+			text += temp;
 		}
 
 		CString temp;
