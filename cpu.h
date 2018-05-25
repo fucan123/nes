@@ -154,6 +154,8 @@ public:
 	int exec_opnum;
 	int opnum;
 
+	word pcp;
+
 	bool test_reg6;
 public:
 	CListCtrl* clist;

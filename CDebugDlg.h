@@ -32,4 +32,5 @@ public:
 	afx_msg void OnBnClickedButtonRun();
 	afx_msg void OnBnClickedButtonOpnum();
 	afx_msg void GetDispInfo_M(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnBnClickedButtonPcp();
 };

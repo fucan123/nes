@@ -23,6 +23,8 @@
 #define IDC_EDIT1                       1017
 #define IDC_EDIT_PPUMEM                 1017
 #define IDC_EDIT_CPUMEM                 1017
+#define IDC_EDIT_PCP                    1017
+#define IDC_BUTTON_PCP                  1019
 #define ID_32771                        32771
 #define ID_DEBUG                        32772
 #define ID_CPU32773                     32773
@@ -36,7 +38,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        315
 #define _APS_NEXT_COMMAND_VALUE         32777
-#define _APS_NEXT_CONTROL_VALUE         1018
+#define _APS_NEXT_CONTROL_VALUE         1020
 #define _APS_NEXT_SYMED_VALUE           310
 #endif
 #endif

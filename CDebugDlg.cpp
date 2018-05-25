@@ -30,6 +30,7 @@ BEGIN_MESSAGE_MAP(CDebugDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_RUN, &CDebugDlg::OnBnClickedButtonRun)
 	ON_BN_CLICKED(IDC_BUTTON_OPNUM, &CDebugDlg::OnBnClickedButtonOpnum)
 	ON_NOTIFY(LVN_GETDISPINFO, 3, &CDebugDlg::GetDispInfo_M)
+	ON_BN_CLICKED(IDC_BUTTON_PCP, &CDebugDlg::OnBnClickedButtonPcp)
 END_MESSAGE_MAP()
 
 BOOL CDebugDlg::OnInitDialog()
@@ -183,4 +184,20 @@ void CDebugDlg::GetDispInfo_M(NMHDR* pNMHDR, LRESULT* pResult) {
 void CDebugDlg::OnDestroy() {
 	CDialog::OnDestroy();
 	delete this;
+}
+
+
+void CDebugDlg::OnBnClickedButtonPcp()
+{
+	CString text;
+	GetDlgItem(IDC_EDIT_PCP)->GetWindowText(text);
+	if (text.GetLength() > 0) {
+		g_CPU.setStep(false);
+		g_CPU.setPause(false);
+		g_CPU.opnum = 0;
+		g_CPU.exec_opnum = 0x7fffffff;
+		g_CPU.pcp = CStringHexToInt(text);
+		//g_CPU.run(_ttoi(text));
+		//g_CPU.opnum = 0;
+	}
 }

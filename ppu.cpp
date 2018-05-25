@@ -70,7 +70,12 @@ byte PPU::readREG(byte addr) {
 				IS_SET_REG6 = false;
 			}
 		}
-		IS_REG7_FIRST = false;
+		else {
+			value = 0xff;
+			REG7_INC = 0;
+			IS_REG7_FIRST = false;
+			IS_SET_REG6 = false;
+		}
 		break;
 	default:
 		break;

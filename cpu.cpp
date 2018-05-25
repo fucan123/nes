@@ -47,6 +47,7 @@ CPU::CPU( ) {
 	lrow = 0;
 	exec_opnum = 0;
 	opnum = 0;
+	pcp = 0;
 	pause = false;
 	step = false;
 	//printf("sizeof err:%d", sizeof(err));
@@ -107,6 +108,15 @@ int CPU::exec(int request_cycles) {
 		if (opnum >= 0 && opnum <= 39) {
 			xs.Format(L"exec opnum:%d p:%d", opnum, this->pause);
 			//MessageBox(NULL, xs, L"t", MB_OK);
+		}
+		//xs.Format(L"PC:%04X,pcp:%04X", R.PC, pcp);
+		//::MessageBox(NULL, xs, L"title", MB_OK);
+		if (pcp && R.PC == pcp) {
+			opnum = exec_opnum = 0;
+			pcp = 0;
+			xs.Format(L"PC:%04XÕÒµ½...", R.PC, pcp);
+			SetWindowTextW(GetDlgItem(dbgdlg, 1010), xs);
+			break;
 		}
 		//opnum++;
 		this->opcode(MEM[R.PC]);
@@ -1583,7 +1593,7 @@ void CPU::printAsm() {
 		rs.Format(L"all num:%d, opnum:%d", exec_opnum, opnum);
 		//SetWindowTextW(GetDlgItem(dbgdlg, 1010), rs);
 	}
-	if (dim <= 100 && clist) {
+	if ((pcp > 0xfffe || dim <= 100) && clist) {
 		CString ra, hs(hex_str), as(asm_str), rms(remark);
 		ra.Format(L"%X:", run_addr);
 		//as.Format(L"%s", "fuck");
