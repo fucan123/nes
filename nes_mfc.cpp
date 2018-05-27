@@ -120,7 +120,7 @@ BOOL Cnes_mfcApp::InitInstance()
 	pFrame->UpdateWindow();
 
 	struct stat st;
-	FILE* fp = fopen("tk.nes", "r");
+	FILE* fp = fopen("xmf.nes", "r");
 	if (!fp) {
 	}
 	fstat(_fileno(fp), &st);

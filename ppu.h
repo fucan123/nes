@@ -7,6 +7,7 @@ class PPU {
 public:
 	//¼Ä´æÆ÷6ºÅµØÖ·
 	word REG6_ADDR;
+	word REG7_ADDR;
 	word REG7_INC;
 public:
 	//¼Ä´æÆ÷

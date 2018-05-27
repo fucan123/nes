@@ -62,16 +62,22 @@ byte PPU::readREG(byte addr) {
 		REG[3]++; //每次访问地址+1
 		break;
 	case 7: //读取VRAM内存 地址由6号寄存器设置
-		value = MEM[REG6_ADDR + REG7_INC]; //读取VRAM内存
+		if (!REG_FLAG[7]) {
+			REG7_ADDR = REG6_ADDR;
+			REG_FLAG[7] = 1;
+		}
+		value = MEM[REG7_ADDR]; //读取VRAM内存
 		if (!IS_REG7_FIRST) { //第一次读的数据无效
-			REG7_INC += (REG[0] & 0x04) ? 32 : 1; //第二位决定+32或+1
+			REG7_ADDR += (REG[0] & 0x04) ? 32 : 1; //第二位决定+32或+1
 			if (IS_SET_REG6) {
+				REG7_ADDR = REG6_ADDR;
 				REG7_INC = 0;
 				IS_SET_REG6 = false;
 			}
 		}
 		else {
 			value = 0xff;
+			REG7_ADDR = REG6_ADDR;
 			REG7_INC = 0;
 			IS_REG7_FIRST = false;
 			IS_SET_REG6 = false;
@@ -120,7 +126,6 @@ void PPU::writeREG(byte addr, byte value) {
 			}
 		}
 		else { //写入低位
-			
 			REG6_ADDR |= (value & 0xff);
 			REG_FLAG[6] = 0;
 			ts.Format(L"写入低位:%X, addr:%X", value, REG6_ADDR);
@@ -146,10 +151,12 @@ void PPU::writeREG(byte addr, byte value) {
 			//MessageBox(NULL, ts, L"t", MB_OK);
 		}
 		if (IS_SET_REG6) {
+			REG7_ADDR = REG6_ADDR;
+			REG_FLAG[7] = 2;
 			REG7_INC = 0;
 			IS_SET_REG6 = false;
 		}
-		this->writeMEM(REG6_ADDR + REG7_INC, value); //写入VRAM内存
+		this->writeMEM(REG7_ADDR, value); //写入VRAM内存
 		if (REG6_ADDR + REG7_INC == 0x3F00) {
 			CString ts;
 			ts.Format(L"3F00");
@@ -160,7 +167,7 @@ void PPU::writeREG(byte addr, byte value) {
 			ts.Format(L"2007 addr:%X, value：%X, REG7_INC:%X", REG6_ADDR + REG7_INC, value, REG7_INC);
 			//MessageBox(NULL, ts, L"t", MB_OK);
 		}
-		REG7_INC += (REG[0] & 0x04) ? 32 : 1; //第二位决定+32或+1
+		REG7_ADDR += (REG[0] & 0x04) ? 32 : 1; //第二位决定+32或+1
 		CString ts;
 		ts.Format(L"2007 REG7_INC:%X, REG6 ADDR:%X", REG7_INC, REG6_ADDR);
 		//MessageBox(NULL, ts, L"t", MB_OK);
