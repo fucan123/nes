@@ -42,6 +42,8 @@ public:
 
 	//背景调色板地址
 	byte* BGC_TABLE;
+	//精灵调色板地址
+	byte* SPR_TABLE;
 
 	//字模对应的属性编号[每画面有960个字幕]
 	byte  CAP_TBALE[960];

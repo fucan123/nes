@@ -5,6 +5,7 @@
 #define VBLANK_FLAG 0x80
 #define SET_VBLANK() REG[2] |= VBLANK_FLAG
 #define CLR_VBLANK() REG[2] &= (~VBLANK_FLAG)
+#define SRAMIN(y, h, l) ((l >= y) && (l <= (y + h)))
 
 PPU::PPU() {
 	BGA     = MEM + 0x1000;
@@ -12,6 +13,7 @@ PPU::PPU() {
 	N_TABLE[0] = N_TABLE[1] = MEM + 0x2000;
 	A_TABLE[0] = A_TABLE[1] = MEM + 0x23C0;
 	BGC_TABLE = MEM + 0x3F00;
+	SPR_TABLE = MEM + 0x3F10;
 	for (int i = 0; i < 960; i++) {
 		byte line = i >> 5; //除以32 每行32个字幕
 		byte n = (i - (line * 32)) >> 2; //每行隔4个字幕增加一
@@ -372,6 +374,44 @@ void PPU::scanfLine(byte line, byte images[]) {
 			sx += 1;
 		}
 		n++;
+	}
+	for (int j = 60; j > 0; j -= 4) {
+		if (SRAMIN(SRAM[j], 8, line)) {
+			index = line * 256 * 4 + (SRAM[j + 3] * 4);
+			//字幕起始地址
+			byte* addr = SPRA + (SRAM[j + 1] * 16);
+			byte k = line - SRAM[j];
+			byte group = SRAM[j + 2] & 0x03;
+			//低位字节
+			byte title_low = *(addr + k);
+			//高位字节
+			byte title_high = *(addr + k + 8);
+			//每两位表示一个像素在颜色组中的位置 [前8位是低位，后8位是高位]
+			for (int i = 7; i >= 0; i--) {
+				//在调色板组中的位置
+				byte pos = (title_low >> i) & 0x01; //低位
+				pos |= ((title_high >> i) & 0x01) << 1; //高位
+				pos &= 0x3; //只有两位 
+							//获取颜色 *(BGC_TABLE + pos) 
+				byte color_n = 0x0D;
+				if (1) {
+					//if (pos == 0x1 || pos == 0x2) pos = 0x3;
+					pos |= group << 2;
+					color_n = *(SPR_TABLE + pos);
+				}
+				//color_n = 0x3;
+				/*CString ts;
+				ts.Format(L"tl:%d, th:%d, tn:%d, color_n:%x", title_low, title_high, tn, color_n);
+				MessageBox(NULL, ts, L"t", MB_OK);*/
+				int color = this->rgb(color_n);
+				//color = RGB(0x80, 0x80, 0x80);
+				//填充画面
+				images[index++] = (color >> 16) & 0xff;
+				images[index++] = (color >> 8) & 0xff;
+				images[index++] = (color >> 0) & 0xff;
+				images[index++] = 0;
+			}
+		}
 	}
 	if (line == 239) {
 		CString ts;

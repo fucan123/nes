@@ -112,9 +112,9 @@ int CPU::exec(int request_cycles) {
 		//xs.Format(L"PC:%04X,pcp:%04X", R.PC, pcp);
 		//::MessageBox(NULL, xs, L"title", MB_OK);
 		if (pcp && R.PC == pcp) {
+			xs.Format(L"PC:%04X找到...运行指令:%d", R.PC, pcp, opnum);
 			opnum = exec_opnum = 0;
 			pcp = 0;
-			xs.Format(L"PC:%04X找到...", R.PC, pcp);
 			SetWindowTextW(GetDlgItem(dbgdlg, 1010), xs);
 			break;
 		}
@@ -964,7 +964,7 @@ void CPU::write(word addr, byte value) {
 }
 // NMI中断 发生在VBlank期间
 void CPU::NMI() {
-	//R.PC += 2; //此指令1个字节 +1是下一条指令
+	R.PC += 2; //此指令1个字节 +1是下一条指令
 	PUSH(R.PC >> 8); //高位先入栈 
 	PUSH(R.PC & 0xff); //低位后入栈
 	PUSH(R.P);
@@ -1217,7 +1217,7 @@ void CPU::JSR() {
 	sprintf(remark, "跳转到子程序");
 	word addr;
 	DT = this->value(M_ABS, &addr);
-	R.PC += 3; //此指令3个字节 +3是下一条指令
+	R.PC += 2; //此指令3个字节 +3是下一条指令
 	PUSH(R.PC >> 8); //高位先入栈 
 	PUSH(R.PC & 0xff); //低位后入栈
 	R.PC = addr; //子程序地址
@@ -1228,6 +1228,7 @@ void CPU::RTS() {
 	this->setAsmOpStr("RTS");
 	R.PC  = POP(); //低位
 	R.PC |= POP() * 0x100; //高位
+	R.PC++;
 	sprintf(remark, "子程序返回:%x,%x", R.PC);
 	opsize = 0;
 }
@@ -1235,7 +1236,7 @@ void CPU::RTS() {
 void CPU::BRK() {
 	this->setAsmOpStr("BRK");
 	sprintf(remark, "进入中断");
-	R.PC++; //此指令1个字节 +1是下一条指令
+	R.PC += 2; //此指令1个字节 +1是下一条指令
 	PUSH(R.PC >> 8); //高位先入栈 
 	PUSH(R.PC & 0xff); //低位后入栈
 	SET_FLAG(B_FLAG);
@@ -1283,7 +1284,7 @@ void CPU::CPY(CPU6502_MODE mode) {
 void CPU::LDA(CPU6502_MODE mode) {
 	this->setAsmOpStr("LDA");
 	DT = this->value(mode);
-	sprintf(remark, "装载到寄存器A(%02X)", (byte)DT);
+	sprintf(remark, "A=%02X", (byte)DT);
 	//MessageBox(NULL, L"LDA", L"t", MB_OK);
 	if (CPUSUC(err.code)) { //指令有效
 		//M -> A
@@ -1324,7 +1325,7 @@ void CPU::STA(CPU6502_MODE mode) {
 	xs.Format(L"STA 1 p:%d", this->pause, asm_str);
 	//MessageBox(NULL, xs, L"t", MB_OK);
 	DT = this->value(mode, &addr);
-	sprintf(remark, "寄存器A(%02X)到地址0x%04x", R.A, addr);
+	sprintf(remark, "0x%04X=%02X", addr, R.A);
 	xs.Format(L"STA 2 p:%d", this->pause, asm_str);
 	//MessageBox(NULL, xs, L"t", MB_OK);
 	this->write(addr, R.A);
