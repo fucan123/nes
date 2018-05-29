@@ -48,6 +48,8 @@ public:
 	//字模对应的属性编号[每画面有960个字幕]
 	byte  CAP_TBALE[960];
 
+	byte  SPR_SIZE;
+
 	bool IS_SET_REG6;
 	bool IS_REG7_FIRST;
 	//是否可响应NMI中断

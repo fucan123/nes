@@ -5,7 +5,7 @@
 #define VBLANK_FLAG 0x80
 #define SET_VBLANK() REG[2] |= VBLANK_FLAG
 #define CLR_VBLANK() REG[2] &= (~VBLANK_FLAG)
-#define SRAMIN(y, h, l) ((l >= y) && (l <= (y + h)))
+#define SRAMIN(y, h, l) ((l >= y) && (l < (y + h)))
 
 PPU::PPU() {
 	BGA     = MEM + 0x1000;
@@ -29,6 +29,7 @@ PPU::PPU() {
 		CAP_TBALE[i] |= (bit << 6);
 		//0-3(0), 4-7(2) 33-36(0)
 	}
+	SPR_SIZE = 8;
 	REG7_INC = 0;
 	IS_SET_REG6 = false;
 	IS_REG7_FIRST = true;
@@ -193,6 +194,12 @@ void PPU::writeREG(byte addr, byte value) {
 				BGA = MEM + 0x1000;
 				SPRA = MEM + 0x0000;
 			}
+			if (value & 0x20) {
+				SPR_SIZE = 16;
+			}
+			else {
+				SPR_SIZE = 8;
+			}
 			if (N_TABLE_V) { //垂直镜像 
 				N_TABLE[0] = N_TABLE[2] = &MEM[0x2000];
 				N_TABLE[1] = N_TABLE[3] = &MEM[0x2400];
@@ -329,7 +336,7 @@ void PPU::scanfLine(byte line, byte images[]) {
 			     pos |= ((title_high >> i) & 0x01) << 1; //高位
 				 pos &= 0x3; //只有两位 
 			//获取颜色 *(BGC_TABLE + pos) 
-		    byte color_n = 0x0D;
+		    byte color_n = *BGC_TABLE;
 			if (pos) {
 				//if (pos == 0x1 || pos == 0x2) pos = 0x3;
 				pos |= group << 2;
@@ -375,26 +382,35 @@ void PPU::scanfLine(byte line, byte images[]) {
 		}
 		n++;
 	}
-	for (int j = 60; j > 0; j -= 4) {
-		if (SRAMIN(SRAM[j], 8, line)) {
+	for (int j = 252; j > 0; j -= 4) {
+		if (SRAMIN(SRAM[j], SPR_SIZE, line)) {
 			index = line * 256 * 4 + (SRAM[j + 3] * 4);
 			//字幕起始地址
-			byte* addr = SPRA + (SRAM[j + 1] * 16);
+			byte tn = SRAM[j + 1];
+			byte* addr = SPRA + (tn * 16);
 			byte k = line - SRAM[j];
+			if (line < (SRAM[j] + 8)) {
+				k = line - SRAM[j];
+			}
+			else {
+				//addr = BGA +  (tn * 16);
+				k =  7 - (line - 8 - SRAM[j]);
+			}
 			byte group = SRAM[j + 2] & 0x03;
 			//低位字节
 			byte title_low = *(addr + k);
 			//高位字节
 			byte title_high = *(addr + k + 8);
 			//每两位表示一个像素在颜色组中的位置 [前8位是低位，后8位是高位]
-			for (int i = 7; i >= 0; i--) {
+			int init_v = 7, step_v = -1;
+			for (int i = init_v; i >= 0 && i < 8; i += step_v) {
 				//在调色板组中的位置
 				byte pos = (title_low >> i) & 0x01; //低位
 				pos |= ((title_high >> i) & 0x01) << 1; //高位
 				pos &= 0x3; //只有两位 
 							//获取颜色 *(BGC_TABLE + pos) 
-				byte color_n = 0x0D;
-				if (1) {
+				byte color_n = *BGC_TABLE;
+				if (pos) {
 					//if (pos == 0x1 || pos == 0x2) pos = 0x3;
 					pos |= group << 2;
 					color_n = *(SPR_TABLE + pos);
@@ -407,8 +423,8 @@ void PPU::scanfLine(byte line, byte images[]) {
 				//color = RGB(0x80, 0x80, 0x80);
 				//填充画面
 				images[index++] = (color >> 16) & 0xff;
-				images[index++] = (color >> 8) & 0xff;
-				images[index++] = (color >> 0) & 0xff;
+				images[index++] = (color >> 8)  & 0xff;
+				images[index++] = (color >> 0)  & 0xff;
 				images[index++] = 0;
 			}
 		}

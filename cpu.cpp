@@ -32,9 +32,9 @@
 // 条件成立，设置标志位
 #define	TST_FLAG(F,V)	{ R.P &= ~(V); if((F)) R.P |= (V); }
 //入栈
-#define PUSH(V) { STACK[R.S--] = (V); }
+#define PUSH(V) { STACK[R.S-- & 0xff] = (V); }
 //出栈
-#define POP()   STACK[++R.S]
+#define POP()   STACK[++R.S & 0xff]
 
 extern PPU g_PPU;
 

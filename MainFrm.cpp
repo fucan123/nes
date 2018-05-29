@@ -192,6 +192,8 @@ UINT CMainFrame::Game(LPVOID param) {
 	CString xs;
 	xs.Format(L"thread p:%d", g_CPU.pause);
 	//::MessageBox(NULL, xs, L"t", MB_OK);
+	g_CPU.opnum = 0;
+	g_CPU.exec_opnum = 0x7fffffff;
 	while (true) {
 		while (g_CPU.opnum < g_CPU.exec_opnum) {
 			//xs.Format(L"thread %d p:%d", g_CPU.opnum, g_CPU.pause);
