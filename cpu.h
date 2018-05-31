@@ -129,6 +129,7 @@ public:
 	CPU6502    R;
 	word       DT;
 	word       WT;
+	byte       NF_TABLE[256];
 	//指令执行周期
 	int        EXEC_CYCLE;
 	//所有执行周期
@@ -177,47 +178,47 @@ public:
 	void write(word addr, byte value);
 
 	void NMI();
-	void ADC(CPU6502_MODE);
-	void INC(CPU6502_MODE);
-	void INX();
-	void INY();
-	void SBC(CPU6502_MODE);
-	void DEC(CPU6502_MODE);
-	void DEX();
-	void DEY();
-	void AND(CPU6502_MODE);
-	void EOR(CPU6502_MODE);
-	void ORA(CPU6502_MODE);
-	void BIT(CPU6502_MODE);
-	void ASL(CPU6502_MODE);
-	void LSR(CPU6502_MODE);
-	void ROL(CPU6502_MODE);
-	void ROR(CPU6502_MODE);
-	void JMP(CPU6502_MODE);
-	void JSR();
-	void RTS();
-	void BRK();
-	void RTI();
-	void CMP(CPU6502_MODE);
-	void CPX(CPU6502_MODE);
-	void CPY(CPU6502_MODE);
-	void LDA(CPU6502_MODE);
-	void LDX(CPU6502_MODE);
-	void LDY(CPU6502_MODE);
-	void STA(CPU6502_MODE);
-	void STX(CPU6502_MODE);
-	void STY(CPU6502_MODE);
-	void TAX();
-	void TAY();
-	void TSX();
-	void TXA();
-	void TXS();
-	void TYA();
-	void PHA();
-	void PHP();
-	void PLA();
-	void PLP();
-	void NOP();
+	void inline ADC(CPU6502_MODE);
+	void inline INC(CPU6502_MODE);
+	void inline INX();
+	void inline INY();
+	void inline SBC(CPU6502_MODE);
+	void inline DEC(CPU6502_MODE);
+	void inline DEX();
+	void inline DEY();
+	void inline AND(CPU6502_MODE);
+	void inline EOR(CPU6502_MODE);
+	void inline ORA(CPU6502_MODE);
+	void inline BIT(CPU6502_MODE);
+	void inline ASL(CPU6502_MODE);
+	void inline LSR(CPU6502_MODE);
+	void inline ROL(CPU6502_MODE);
+	void inline ROR(CPU6502_MODE);
+	void inline JMP(CPU6502_MODE);
+	void inline JSR();
+	void inline RTS();
+	void inline BRK();
+	void inline RTI();
+	void inline CMP(CPU6502_MODE);
+	void inline CPX(CPU6502_MODE);
+	void inline CPY(CPU6502_MODE);
+	void inline LDA(CPU6502_MODE);
+	void inline LDX(CPU6502_MODE);
+	void inline LDY(CPU6502_MODE);
+	void inline STA(CPU6502_MODE);
+	void inline STX(CPU6502_MODE);
+	void inline STY(CPU6502_MODE);
+	void inline TAX();
+	void inline TAY();
+	void inline TSX();
+	void inline TXA();
+	void inline TXS();
+	void inline TYA();
+	void inline PHA();
+	void inline PHP();
+	void inline PLA();
+	void inline PLP();
+	void inline NOP();
 
 	void inline BCC();
 	void inline BCS();
@@ -253,8 +254,8 @@ public:
 
 	void setPause(bool);
 	void setStep(bool);
-	void setAsmOpStr(const char*);
-	void printAsm();
+	void inline setAsmOpStr(const char*);
+	void inline printAsm();
 	void dumpError();
 	void end() {
 		//一条扫描线时间

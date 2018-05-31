@@ -120,7 +120,7 @@ BOOL Cnes_mfcApp::InitInstance()
 	pFrame->UpdateWindow();
 
 	struct stat st;
-	FILE* fp = fopen("tk.nes", "r");
+	FILE* fp = fopen("cjml.nes", "r");
 	if (!fp) {
 	}
 	fstat(_fileno(fp), &st);
@@ -136,17 +136,25 @@ BOOL Cnes_mfcApp::InitInstance()
 	char* roms = new char[rom_size];
 	memcpy(roms, tmp + 16, rom_size);
 
-	char* m = new char[0xffff];
-	memset(m, 0, 0xffff);
+	char* m = new char[0xffff + 1];
+	memset(m, 0, 0xffff + 1);
 	if (header.rom_count == 1) {
 		memcpy(&m[0x8000], roms, 0x4000); 
 		memcpy(&m[0xc000], roms, 0x4000); 
+	
 	}
+	if (header.rom_count == 2) {
+		memcpy(&m[0x8000], roms, 0x8000);
+	}
+	word x = 0x01, dt = 0x0d;
+	word r = x - dt;
 
-	g_CPU.load(m, 0xffff, m + header.rom_count * 0x4000, 0x2000);
+	g_CPU.load(m, 0xffff + 1, m + header.rom_count * 0x4000, 0x2000);
 	g_PPU.load(roms + header.rom_count * 0x4000, 0x2000);
 	//g_CPU.write(0x2000, 0x10);
-	//::MessageBox(NULL, L"main", L"t", MB_OK);
+	CString t;
+	t.Format(L"%02X", (byte)r);
+	::MessageBox(NULL, t, L"t", MB_OK);
 	//AfxBeginThread(CPURun, this);
 	//AfxBeginThread(PPURun, this);
 	return TRUE;

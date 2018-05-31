@@ -28,7 +28,8 @@
 // 清除标志位
 #define CLR_FLAG(V) { R.P &= ~(V); }
 // 设置ZN标志位
-#define	SET_ZN_FLAG(V)	{ R.P &= ~(Z_FLAG|N_FLAG); if(((V)&0xff)==0){ R.P |= Z_FLAG; } if((V)>0x7f){ R.P |= N_FLAG; } }
+#define	SET_ZN_FLAG_OLD(V)	{ R.P &= ~(Z_FLAG|N_FLAG); if(((V)&0xff)==0){ R.P |= Z_FLAG; } if((V)>0x7f){ R.P |= N_FLAG; } }
+#define	SET_ZN_FLAG(V)	{ R.P &= ~(Z_FLAG|N_FLAG); R.P |= NF_TABLE[(byte)V]; }
 // 条件成立，设置标志位
 #define	TST_FLAG(F,V)	{ R.P &= ~(V); if((F)) R.P |= (V); }
 //入栈
@@ -62,11 +63,15 @@ void CPU::load(char* m, size_t size, char* p, size_t psize) {
 }
 
 void CPU::reset() {
+	for (int i = 0; i < 256; i++) {
+		NF_TABLE[i] = (i & 0x80) ? N_FLAG : 0;
+	}
+	NF_TABLE[0] = Z_FLAG;
 	//REST（开机或复位）会在0xfffc和0xfffd此地址指向的空间寻找指令（0xfffc为低8位，0xfffd为高8位）
 	word opaddr = MEM[REST_VECTOR] | (MEM[REST_VECTOR + 1] << 8);
 	R.PC = opaddr;
 	CString xs;
-	xs.Format(L"rest %d p:%d", opnum, this->pause);
+	xs.Format(L"rest %d p:%d, addr:%04X", opnum, this->pause, opaddr);
 	//MessageBox(NULL, xs, L"t", MB_OK);
 	//run();
 	//::MessageBox(NULL, pc, L"title", MB_OK);
@@ -97,18 +102,6 @@ int CPU::exec(int request_cycles) {
 	while (opnum < exec_opnum && request_cycles > 0) {
 		CString xs;
 		ZERO_CYCLE();
-		if (g_PPU.REG6_ADDR == 0x3F00) {
-			test_reg6 = true;
-		}
-		if (test_reg6) {
-			CString ts;
-			ts.Format(L"EXEC:%X", g_PPU.REG6_ADDR);
-			//MessageBox(NULL, ts, L"t", MB_OK);
-		}
-		if (opnum >= 0 && opnum <= 39) {
-			xs.Format(L"exec opnum:%d p:%d", opnum, this->pause);
-			//MessageBox(NULL, xs, L"t", MB_OK);
-		}
 		//xs.Format(L"PC:%04X,pcp:%04X", R.PC, pcp);
 		//::MessageBox(NULL, xs, L"title", MB_OK);
 		if (pcp && R.PC == pcp) {
@@ -123,29 +116,13 @@ int CPU::exec(int request_cycles) {
 		EXEC_CYCLE = 2;
 		request_cycles -= EXEC_CYCLE;
 		TOTAL_CYCLE += EXEC_CYCLE;
-		
-		xs.Format(L"all num:%d, opnum:%d",exec_opnum, opnum);
-		//::SetWindowTextW(::GetDlgItem(dbgdlg, 1010), xs);
-		if (opnum == 30 && opnum <= 39) {
-			xs.Format(L"%d p:%d asm%s", opnum, this->pause, asm_str);
-			//MessageBox(NULL, xs, L"t", MB_OK);
-		}
 	}
 	return opnum;
 }
 
 CPU6502_CODE CPU::opcode(byte opcode) {
-	CString xs;
-	xs.Format(L"opnum----%d", opnum);
-	//MessageBox(NULL, xs, L"t", MB_OK);
 	opnum++;
 	this->run_addr = R.PC;
-	sprintf(this->hex_str, "%02X ", opcode);
-	CString ts;
-	ts.Format(L"opnum:%d", opnum);
-	//MessageBox(NULL, ts, L"t", MB_OK);
-	//return CERR;
-	//printf("opcode:0x%x\n", opcode);
 	opsize = 0;
 	switch (opcode) {
 	case 0x00: //BRK 中断
@@ -674,9 +651,6 @@ CPU6502_CODE CPU::opcode(byte opcode) {
 		ADD_CYCLE(4);
 		break;
 	case 0x8D: {//STA 0x002B 绝对 3字节
-		CString xs;
-		xs.Format(L"8D p:%d", this->pause);
-		//MessageBox(NULL, xs, L"t", MB_OK);
 		this->STA(M_ABS);
 		ADD_CYCLE(4);
 		break; }
@@ -939,10 +913,8 @@ void CPU::write(word addr, byte value) {
 		CString t;
 		
 		g_PPU.writeREG(addr & 0x07, value);
-		t.Format(L"WRITE:%d,p:%d,pause地址:%X, REG地址:%X, CPU:%X=PPU:%X, REG6_ADDR:%X, REG7_INC:%X, opnum:%X", value, pause, &pause, &g_PPU.REG[0],
-		    this, &g_PPU, &g_PPU.REG6_ADDR, &g_PPU.REG7_INC, &opnum);
 		if (addr == 0x2006 && value == 0x28) {
-			t.Format(L"asm str:%s", asm_str);
+			//t.Format(L"asm str:%s", asm_str);
 			//MessageBox(NULL, t, L"title", MB_OK);
 		}
 		//MessageBox(NULL, t, L"title", MB_OK);
@@ -964,10 +936,11 @@ void CPU::write(word addr, byte value) {
 }
 // NMI中断 发生在VBlank期间
 void CPU::NMI() {
-	R.PC += 2; //此指令1个字节 +1是下一条指令
+	//R.PC += 2; //此指令1个字节 +1是下一条指令
 	PUSH(R.PC >> 8); //高位先入栈 
 	PUSH(R.PC & 0xff); //低位后入栈
 	PUSH(R.P);
+	CLR_FLAG(B_FLAG);
 	SET_FLAG(I_FLAG);
 	R.PC = MEM[NMI_VECTOR] | (MEM[NMI_VECTOR + 1] << 8);
 }
@@ -1234,9 +1207,14 @@ void CPU::RTS() {
 }
 // 强制进入中断 不可屏蔽
 void CPU::BRK() {
+	CString s(asm_str);
 	this->setAsmOpStr("BRK");
 	sprintf(remark, "进入中断");
 	R.PC += 2; //此指令1个字节 +1是下一条指令
+	CString x;
+	x.Format(L"PC=%04X,SP=%02X", R.PC, R.S);
+	x += s;
+	::MessageBox(NULL, x, L"t", MB_OK);
 	PUSH(R.PC >> 8); //高位先入栈 
 	PUSH(R.PC & 0xff); //低位后入栈
 	SET_FLAG(B_FLAG);
@@ -1322,14 +1300,14 @@ void CPU::STA(CPU6502_MODE mode) {
 	this->setAsmOpStr("STA");
 	word addr;
 	CString xs;
-	xs.Format(L"STA 1 p:%d", this->pause, asm_str);
+	//xs.Format(L"STA 1 p:%d", this->pause, asm_str);
 	//MessageBox(NULL, xs, L"t", MB_OK);
 	DT = this->value(mode, &addr);
 	sprintf(remark, "0x%04X=%02X", addr, R.A);
-	xs.Format(L"STA 2 p:%d", this->pause, asm_str);
+	//xs.Format(L"STA 2 p:%d", this->pause, asm_str);
 	//MessageBox(NULL, xs, L"t", MB_OK);
 	this->write(addr, R.A);
-	xs.Format(L"STA 3 p:%d", this->pause, asm_str);
+	//xs.Format(L"STA 3 p:%d", this->pause, asm_str);
 	//MessageBox(NULL, xs, L"t", MB_OK);
 }
 /* STX (--------) */
@@ -1581,6 +1559,7 @@ void CPU::setStep(bool r) {
 }
 
 void CPU::setAsmOpStr(const char* str) {
+	//return;
 	asm_str[0] = str[0];
 	asm_str[1] = str[1];
 	asm_str[2] = str[2];
@@ -1588,6 +1567,7 @@ void CPU::setAsmOpStr(const char* str) {
 }
 
 void CPU::printAsm() {
+	//return;
 	int dim = exec_opnum - opnum;
 	if (opnum > 9150) {
 		CString rs;

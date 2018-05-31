@@ -87,7 +87,7 @@ UINT CPpuMemDlg::ShowMEM(LPVOID param) {
 				g_PPU.MEM[i + 5], g_PPU.MEM[i + 6], g_PPU.MEM[i + 7], g_PPU.MEM[i + 8], g_PPU.MEM[i + 9],
 				g_PPU.MEM[i + 10], g_PPU.MEM[i + 11], g_PPU.MEM[i + 12], g_PPU.MEM[i + 13], g_PPU.MEM[i + 14],
 				g_PPU.MEM[i + 15]);
-			text += temp;
+			//text += temp;
 		}
 
 		CString temp;
@@ -114,7 +114,7 @@ UINT CPpuMemDlg::ShowMEM(LPVOID param) {
 		text += temp;
 		text += L"命名表/属性表\r\n";
 		text += L"----   00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F\r\n";
-		for (i = 0x2000; i < 0x27EF; i += 16) {
+		for (i = 0x2000; i < 0x27FF; i += 16) {
 			CString temp;
 			temp.Format(L"%04X   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
 				i,

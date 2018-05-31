@@ -58,7 +58,7 @@ byte PPU::readREG(byte addr) {
 		REG_FLAG[5] = 0; //复位
 		REG_FLAG[6] = 0; //复位
 		REG6_ADDR = 0;
-		//CLR_VBLANK();
+		CLR_VBLANK();
 		break;
 	case 4: //读取精灵RAM
 		value = SRAM[REG[3]]; //寄存器编号3是SRAM地址
@@ -94,8 +94,6 @@ byte PPU::readREG(byte addr) {
 //写入寄存器
 void PPU::writeREG(byte addr, byte value) {
 	addr &= 0x07;
-	CString ts;
-	ts.Format(L"REG地址:%X", REG);
 	//MessageBox(NULL, ts, L"t", MB_OK);
 	switch (addr)
 	{
@@ -108,11 +106,6 @@ void PPU::writeREG(byte addr, byte value) {
 		if (REG_FLAG[5] && value > 239) {
 			SCROLL_REG[1] = 239;
 		}
-		if (value > 0) {
-			CString ts;
-			ts.Format(L"REG5 value:%x, FLAG:%d", value, REG_FLAG[5]);
-			//MessageBox(NULL, ts, L"t", MB_OK);
-		}
 		REG_FLAG[5] ^= 1;
 		break;
 	}
@@ -121,38 +114,23 @@ void PPU::writeREG(byte addr, byte value) {
 			REG6_ADDR = 0;
 			REG6_ADDR |= (((word)value) << 8) & 0xff00;
 			REG_FLAG[6] = 1;
-			ts.Format(L"写入高位:%X, addr:%X, addr2:%X", value, REG6_ADDR, REG6_ADDR & 0xff00);
+			//ts.Format(L"写入高位:%X, addr:%X, addr2:%X", value, REG6_ADDR, REG6_ADDR & 0xff00);
 			if (value > 0x70) {
-				CString ts;
-				ts.Format(L"--, value:%x, addr:%x, addr2:%X", value, REG6_ADDR, REG6_ADDR & 0xff00);
 				//MessageBox(NULL, ts, L"t", MB_OK);
 			}
 		}
 		else { //写入低位
 			REG6_ADDR |= (value & 0xff);
 			REG_FLAG[6] = 0;
-			ts.Format(L"写入低位:%X, addr:%X", value, REG6_ADDR);
+			//ts.Format(L"写入低位:%X, addr:%X", value, REG6_ADDR);
 		}
 		//MessageBox(NULL, ts, L"t", MB_OK);
-		if (REG6_ADDR > 0x8000) {
-			CString ts;
-			ts.Format(L"value:%x, addr:%x", value, REG6_ADDR);
-			MessageBox(NULL, ts, L"t", MB_OK);
-		}
-		CString ts;
-		ts.Format(L"REG6_ADDR:%X", REG6_ADDR);
+		//CString ts;
+		//ts.Format(L"REG6_ADDR:%X", REG6_ADDR);
 		//MessageBox(NULL, ts, L"t", MB_OK);
 		IS_SET_REG6 = true;
 		break; }
 	case 7: {
-		if (REG6_ADDR > 0x8000) {
-			//MessageBox(NULL, L"FUCK", L"t", MB_OK);
-		}
-		if (value > 0) {
-			CString ts;
-			ts.Format(L"value:%x, addr:%x", value, REG6_ADDR);
-			//MessageBox(NULL, ts, L"t", MB_OK);
-		}
 		if (IS_SET_REG6) {
 			REG7_ADDR = REG6_ADDR;
 			REG_FLAG[7] = 2;
@@ -160,20 +138,7 @@ void PPU::writeREG(byte addr, byte value) {
 			IS_SET_REG6 = false;
 		}
 		this->writeMEM(REG7_ADDR, value); //写入VRAM内存
-		if (REG6_ADDR + REG7_INC == 0x3F00) {
-			CString ts;
-			ts.Format(L"3F00");
-			//MessageBox(NULL, ts, L"t", MB_OK);
-		}
-		if (REG6_ADDR + REG7_INC) {
-			CString ts;
-			ts.Format(L"2007 addr:%X, value：%X, REG7_INC:%X", REG6_ADDR + REG7_INC, value, REG7_INC);
-			//MessageBox(NULL, ts, L"t", MB_OK);
-		}
 		REG7_ADDR += (REG[0] & 0x04) ? 32 : 1; //第二位决定+32或+1
-		CString ts;
-		ts.Format(L"2007 REG7_INC:%X, REG6 ADDR:%X", REG7_INC, REG6_ADDR);
-		//MessageBox(NULL, ts, L"t", MB_OK);
 		break; }
 	default:
 		REG[addr] = value;
@@ -181,8 +146,8 @@ void PPU::writeREG(byte addr, byte value) {
 			N_TABLE_INDEX = value & 0x03;
 			N_TABLE_V = value & 0x04 ? 1 : 0;
 			if (N_TABLE_INDEX > 0 || N_TABLE_V > 0) {
-				CString ts;
-				ts.Format(L"index:%d, v:%d", N_TABLE_INDEX, N_TABLE_V);
+				//CString ts;
+				//ts.Format(L"index:%d, v:%d", N_TABLE_INDEX, N_TABLE_V);
 				//MessageBox(NULL, ts, L"t", MB_OK);
 			}
 			
@@ -224,8 +189,8 @@ void PPU::writeMEM(word addr, byte value) {
 		word dim = addr - 0x2800;
 		*(N_TABLE[2] + dim) = value;
 		if (dim < 0x10) {
-			CString ts;
-			ts.Format(L"2800 addr:%X, value:%X, SCROLL_REG:%x,%x", addr, value, SCROLL_REG[0], SCROLL_REG[1]);
+			//CString ts;
+			//ts.Format(L"2800 addr:%X, value:%X, SCROLL_REG:%x,%x", addr, value, SCROLL_REG[0], SCROLL_REG[1]);
 			//MessageBox(NULL, ts, L"t", MB_OK);
 		}
 		
@@ -286,8 +251,6 @@ void PPU::scanfLine(byte line, byte images[]) {
 			nt_index = 1;
 		}
 		line_t -= 240;
-		CString t;
-		t.Format(L"LINE T:%d, value:%X", line_t, N_TABLE[nt_index][100]);
 		//MessageBox(NULL, t, L"t", MB_OK);
 	}
 	//属于画面中哪个画面(属于命名表中几号编号) 一共8行 每行32个
@@ -296,14 +259,7 @@ void PPU::scanfLine(byte line, byte images[]) {
 	word m = (line_t & 0x07);
 	//一行32个字幕 sx=x开始坐标
 	word e = n + 32, sx = 0;
-	if (line_t == 60) {
-		CString t;
-		t.Format(L"n=%d,m=%d,e=%d,line>>3=%d", n, m, e, line >> 3);
-		//MessageBox(NULL, t, L"t", MB_OK);
-	}
 	int index = line * 256 * 4;
-	CString ts;
-	ts.Format(L"n:%d, e:%d", n, e);
 	//MessageBox(NULL, ts, L"t", MB_OK);
 	//N_TABLE_INDEX = 0;
 	while (n < e) {
@@ -314,11 +270,6 @@ void PPU::scanfLine(byte line, byte images[]) {
 		//此字模属性 低6位是属性编号
 		byte attr = A_TABLE[nt_index][CAP_TBALE[n] & 0x3f];
 		//颜色组
-		if ((attr)) {
-			CString ts;
-			ts.Format(L"attr:%0X", attr);
-			//MessageBox(NULL, ts, L"t", MB_OK);
-		}
 		byte group = (attr >> ((CAP_TBALE[n] >> 6) << 1)) & 0x03;
 		//group = CAP_TBALE[n] >> 6;
 		//背景颜色调色板地址 4组 每组4字节 共16字节
@@ -342,18 +293,6 @@ void PPU::scanfLine(byte line, byte images[]) {
 				pos |= group << 2;
 				color_n = *(BGC_TABLE + pos);
 			}
-			if (line == 239 && SCROLL_REG[1] > (8 * 10)) {
-				CString ts;
-				ts.Format(L"addr:%04X,n:%d,SCROLL_REG:%d,line:%d,line_t:%d,pos:%d,color_n:%d,tn:%X,nt_index:%d,N_TABLE_INDEX:%d", 
-					0x2400 + n, n,SCROLL_REG[1], line, line_t, pos, color_n, tn, nt_index, N_TABLE_INDEX);
-				//MessageBox(NULL, ts, L"t", MB_OK);
-			}
-			if (0 && (tn == 0x5E)) {
-				CString ts;
-				ts.Format(L"L:%0X,H:%0X,ADDR:%04X,POS:%d,I:%d,t:%d,group:%d", title_low, title_high, 0x1000 + (tn * 16), pos, i,
-					(title_high >> i) & 0x01, group);
-				//MessageBox(NULL, ts, L"t", MB_OK);
-			}
 			//color_n = 0x3;
 			/*CString ts;
 			ts.Format(L"tl:%d, th:%d, tn:%d, color_n:%x", title_low, title_high, tn, color_n);
@@ -364,7 +303,7 @@ void PPU::scanfLine(byte line, byte images[]) {
 			images[index++] = (color >> 16) & 0xff;
 			images[index++] = (color >> 8) & 0xff;
 			images[index++] = (color >> 0) & 0xff;
-			images[index++] = 0;
+			images[index++] = pos;
 			/*if (dc) {
 				CPen pen(PS_SOLID, 1, this->rgb(color) + line);//创建一个虚线线条，宽度为1，红色的画笔对象  
 				CPen* pOldPen = dc->SelectObject(&pen);//将画笔对象选入到设备描述表中 
@@ -387,22 +326,34 @@ void PPU::scanfLine(byte line, byte images[]) {
 			index = line * 256 * 4 + (SRAM[j + 3] * 4);
 			//字幕起始地址
 			byte tn = SRAM[j + 1];
-			byte* addr = SPRA + (tn * 16);
-			byte k = line - SRAM[j];
-			if (line < (SRAM[j] + 8)) {
-				k = line - SRAM[j];
+			byte sta = SRAM[j + 2];
+			byte* ptn = SPRA;
+			if (SPR_SIZE == 16) {
+				ptn = &MEM[(tn & 0x01) * 0x1000];
+				if (line < (SRAM[j] + 8)) {
+					if (tn & 0x01) 
+						tn--;
+				}
+				else {
+					if (!(tn & 0x01))
+						tn++;
+				}
 			}
-			else {
-				//addr = BGA +  (tn * 16);
-				k =  7 - (line - 8 - SRAM[j]);
+			byte* addr = ptn + (tn * 16);
+			byte k = (line - SRAM[j]) & 0x07;
+			byte group = sta & 0x03;
+			//每两位表示一个像素在颜色组中的位置 [前8位是低位，后8位是高位]
+			int init_v = 7, step_v = -1;
+			if (sta & 0x80) {
+				k = 7 - k;
 			}
-			byte group = SRAM[j + 2] & 0x03;
+			if (sta & 0x40) { //水平翻转
+				init_v = 0; step_v = 1;
+			}
 			//低位字节
 			byte title_low = *(addr + k);
 			//高位字节
 			byte title_high = *(addr + k + 8);
-			//每两位表示一个像素在颜色组中的位置 [前8位是低位，后8位是高位]
-			int init_v = 7, step_v = -1;
 			for (int i = init_v; i >= 0 && i < 8; i += step_v) {
 				//在调色板组中的位置
 				byte pos = (title_low >> i) & 0x01; //低位
@@ -410,6 +361,10 @@ void PPU::scanfLine(byte line, byte images[]) {
 				pos &= 0x3; //只有两位 
 							//获取颜色 *(BGC_TABLE + pos) 
 				byte color_n = *BGC_TABLE;
+				if (!pos) {
+					index += 4;
+					continue;
+				}
 				if (pos) {
 					//if (pos == 0x1 || pos == 0x2) pos = 0x3;
 					pos |= group << 2;
@@ -422,16 +377,26 @@ void PPU::scanfLine(byte line, byte images[]) {
 				int color = this->rgb(color_n);
 				//color = RGB(0x80, 0x80, 0x80);
 				//填充画面
-				images[index++] = (color >> 16) & 0xff;
-				images[index++] = (color >> 8)  & 0xff;
-				images[index++] = (color >> 0)  & 0xff;
-				images[index++] = 0;
+				if (!(sta & 0x20)) {
+					images[index++] = (color >> 16) & 0xff;
+					images[index++] = (color >> 8) & 0xff;
+					images[index++] = (color >> 0) & 0xff;
+					images[index++] = 0;
+				}
+				else {
+					if (images[index + 3] == 0) {
+						images[index++] = (color >> 16) & 0xff;
+						images[index++] = (color >> 8) & 0xff;
+						images[index++] = (color >> 0) & 0xff;
+						images[index++] = 0;
+					}
+				}
 			}
 		}
 	}
 	if (line == 239) {
-		CString ts;
-		ts.Format(L"vblank, line:%d", line);
+		//CString ts;
+		//ts.Format(L"vblank, line:%d", line);
 		//MessageBox(NULL, ts, L"t", MB_OK);
 		SET_VBLANK();
 	}

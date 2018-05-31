@@ -127,6 +127,7 @@ BOOL CMainFrame::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO*
 }
 
 UINT CMainFrame::Game(LPVOID param) {
+	SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
 	Sleep(100);
 	CString ts;
 	ts.Format(L"PC:%x", g_CPU.R.PC);
@@ -184,16 +185,18 @@ UINT CMainFrame::Game(LPVOID param) {
 	LARGE_INTEGER freq, stime, ctime;
 	QueryPerformanceFrequency(&freq); //获取时钟频率
 	CString tt;
-	tt.Format(L"%ld", freq.QuadPart);
+	//tt.Format(L"%ld", freq.QuadPart);
 	//::MessageBox(NULL, tt, L"title", MB_OK);
 	QueryPerformanceCounter(&stime); //113.6825
+	tt.Format(L"%ld %ld", freq.QuadPart, stime.QuadPart);
+	//::MessageBox(NULL, tt, L"title", MB_OK);
 	byte images[256 * 240 * 4];
 	memset(images, 0, sizeof(images));
 	CString xs;
 	xs.Format(L"thread p:%d", g_CPU.pause);
 	//::MessageBox(NULL, xs, L"t", MB_OK);
 	g_CPU.opnum = 0;
-	g_CPU.exec_opnum = 0x7fffffff;
+	g_CPU.exec_opnum = 0;// 0x7fffffff;
 	while (true) {
 		while (g_CPU.opnum < g_CPU.exec_opnum) {
 			//xs.Format(L"thread %d p:%d", g_CPU.opnum, g_CPU.pause);
@@ -207,17 +210,33 @@ UINT CMainFrame::Game(LPVOID param) {
 			//::MessageBox(NULL, tt, L"title", MB_OK);
 			QueryPerformanceCounter(&ctime); //当前时间
 			double dim = (double)(ctime.QuadPart - stime.QuadPart) / (double)freq.QuadPart;
+			/*CString tt;
+			tt.Format(L"%.6fMS, %lu=%lu", dim * 1000, ctime.QuadPart, stime.QuadPart);
+			::MessageBox(NULL, tt, L"title", MB_OK);*/
 			if (dim >= line_time) {
+				stime = ctime;
 				int exec_cycles = 114;
 				if (line == 240) {
 					if (g_PPU.IS_NMI) {
-						CString tt;
-						tt.Format(L"opcode:%X", g_CPU.R.PC);
+						//CString tt;
+						//tt.Format(L"opcode:%X", g_CPU.R.PC);
 						//::MessageBox(NULL, tt , L"title", MB_OK);
 						exec_cycles -= 7;
 						g_CPU.NMI();
 						exec_cycles -= 7;
 					}
+					CBitmap bm;
+					bm.CreateBitmap(256, 240, 1, 32, images);
+					BITMAP  bmp;
+					bm.GetBitmap(&bmp);
+					CBitmap* pOldBitmap = dcImage.SelectObject(&bm);
+
+					int width = pFrame->m_wndView.rect.right - pFrame->m_wndView.rect.left;
+					int height = pFrame->m_wndView.rect.bottom - pFrame->m_wndView.rect.top;
+					dc->StretchBlt(0, 0, width, height, &dcImage, 0, 0, bmp.bmWidth, bmp.bmHeight, SRCCOPY);
+					//dc.BitBlt(10, 10, bmp.bmWidth, bmp.bmHeight, &dcImage, 0, 0, SRCCOPY);
+					// TODO: 在此处添加消息处理程序代码
+					dcImage.SelectObject(pOldBitmap);
 				}
 				if (0 && g_CPU.step) {
 					g_CPU.exec(1);
@@ -234,7 +253,7 @@ UINT CMainFrame::Game(LPVOID param) {
 				//执行cpu指令 113.6825周期
 				if (line < 240) {
 					g_PPU.scanfLine(line, images);
-					CBitmap bm;
+					/*CBitmap bm;
 					bm.CreateBitmap(256, 240, 1, 32, images);
 					BITMAP  bmp;
 					bm.GetBitmap(&bmp);
@@ -245,7 +264,7 @@ UINT CMainFrame::Game(LPVOID param) {
 					dc->StretchBlt(0, 0, width, height, &dcImage, 0, 0, bmp.bmWidth, bmp.bmHeight, SRCCOPY);
 					//dc.BitBlt(10, 10, bmp.bmWidth, bmp.bmHeight, &dcImage, 0, 0, SRCCOPY);
 					// TODO: 在此处添加消息处理程序代码
-					dcImage.SelectObject(pOldBitmap);
+					dcImage.SelectObject(pOldBitmap);*/
 					//绘制扫描线
 				}
 				if (++line == 312) //全部312扫描完成
