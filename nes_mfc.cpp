@@ -154,7 +154,7 @@ BOOL Cnes_mfcApp::InitInstance()
 	//g_CPU.write(0x2000, 0x10);
 	CString t;
 	t.Format(L"%02X", (byte)r);
-	::MessageBox(NULL, t, L"t", MB_OK);
+	//::MessageBox(NULL, t, L"t", MB_OK);
 	//AfxBeginThread(CPURun, this);
 	//AfxBeginThread(PPURun, this);
 	return TRUE;

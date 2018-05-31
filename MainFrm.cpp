@@ -69,13 +69,12 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;      // 未能创建
 	}
 	m_wndStatusBar.SetIndicators(indicators, sizeof(indicators)/sizeof(UINT));
-
+	m_wndStatusBar.SetPaneText(2, L"mm");
 	// TODO: 如果不需要可停靠工具栏，则删除这三行
 	/*m_wndToolBar.EnableDocking(CBRS_ALIGN_ANY);
 	EnableDocking(CBRS_ALIGN_ANY);
 	DockControlBar(&m_wndToolBar);*/
 	AfxBeginThread(Game, this);
-
 	return 0;
 }
 
@@ -133,6 +132,7 @@ UINT CMainFrame::Game(LPVOID param) {
 	ts.Format(L"PC:%x", g_CPU.R.PC);
 	//::MessageBox(NULL, ts, L"t", MB_OK);
 	CMainFrame* pFrame = (CMainFrame*)param;
+	::SendMessageA(pFrame->m_wndStatusBar.m_hWnd, SB_SETTEXT, 2, (LPARAM)LPCTSTR(ts));
 	CDC* dc = pFrame->m_wndView.GetDC();
 	CDC dcImage;
 	if (!dcImage.CreateCompatibleDC(dc)) {
@@ -194,9 +194,10 @@ UINT CMainFrame::Game(LPVOID param) {
 	memset(images, 0, sizeof(images));
 	CString xs;
 	xs.Format(L"thread p:%d", g_CPU.pause);
+	//pFrame->m_wndStatusBar.SetPaneText(2, L"xxx");
 	//::MessageBox(NULL, xs, L"t", MB_OK);
 	g_CPU.opnum = 0;
-	g_CPU.exec_opnum = 0;// 0x7fffffff;
+	g_CPU.exec_opnum = 0x7fffffff;
 	while (true) {
 		while (g_CPU.opnum < g_CPU.exec_opnum) {
 			//xs.Format(L"thread %d p:%d", g_CPU.opnum, g_CPU.pause);
@@ -216,6 +217,8 @@ UINT CMainFrame::Game(LPVOID param) {
 			if (dim >= line_time) {
 				stime = ctime;
 				int exec_cycles = 114;
+				//xs.Format(L"%d", line);
+				//::SendMessageA(pFrame->m_wndStatusBar.m_hWnd, SB_SETTEXT, 2, (LPARAM)LPCTSTR(xs));
 				if (line == 240) {
 					if (g_PPU.IS_NMI) {
 						//CString tt;

@@ -226,11 +226,11 @@ CPU6502_CODE CPU::opcode(byte opcode) {
 		ADD_CYCLE(6);
 		break;
 	case 0xCE: //DEC 0x002B 绝对 3字节
-		this->INC(M_ABS);
+		this->DEC(M_ABS);
 		ADD_CYCLE(6);
 		break;
 	case 0xDE: //DEC 0x002B,X 绝对X 3字节
-		this->INC(M_X_ABS);
+		this->DEC(M_X_ABS);
 		ADD_CYCLE(7);
 		break;
 	case 0xCA: //DEX 1字节
@@ -785,7 +785,7 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 	case M_X_ABS:
 		//第一个字节为低8位，第二个为高8位
 		addr  = opd | (opd2 << 8);
-		sprintf(str, "0x%04X,X[%X]", addr, MEM[addr + R.X]);
+		sprintf(str, "0x%04X,X[%04X]", addr, addr + R.X);
 		sprintf(hstr, "%02X%02X", opd, opd2);
 		addr += R.X;
 		opsize = 3;

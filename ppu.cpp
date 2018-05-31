@@ -321,8 +321,10 @@ void PPU::scanfLine(byte line, byte images[]) {
 		}
 		n++;
 	}
+	int spr_count = 0;
 	for (int j = 252; j > 0; j -= 4) {
 		if (SRAMIN(SRAM[j], SPR_SIZE, line)) {
+			spr_count++;
 			index = line * 256 * 4 + (SRAM[j + 3] * 4);
 			//×ÖÄ»ÆðÊ¼µØÖ·
 			byte tn = SRAM[j + 1];
@@ -390,14 +392,26 @@ void PPU::scanfLine(byte line, byte images[]) {
 						images[index++] = (color >> 0) & 0xff;
 						images[index++] = 0;
 					}
+					else {
+						if (i == 0) {
+							REG[2] |= 0x40;
+						}
+					}
 				}
 			}
 		}
+	}
+	if (spr_count > 8) {
+		REG[2] |= 0x20;
+	}
+	else {
+		REG[2] &= ~(0x20);
 	}
 	if (line == 239) {
 		//CString ts;
 		//ts.Format(L"vblank, line:%d", line);
 		//MessageBox(NULL, ts, L"t", MB_OK);
+		REG[2] &= ~(0x40);
 		SET_VBLANK();
 	}
 }
