@@ -201,7 +201,11 @@ void PPU::writeMEM(word addr, byte value) {
 	}
 	else if (addr >= 0x3F00 && addr <= 0x3F0F) {
 		MEM[addr] = value;
-		//MEM[addr & 0x000F | 0x3F10] = value; //镜像到0x3F1?
+		MEM[addr & 0x000F | 0x3F10] = value; //镜像到0x3F1?
+	}
+	else if (addr == 0x3F10 || addr == 0x3F14 ||  addr == 0x3F18 || addr == 0x3F1C) {
+		MEM[addr] = value;
+		MEM[addr & 0x000F | 0x3F00] = value; //镜像到0x3F1?
 	}
 	else {
 		MEM[addr] = value;
@@ -236,8 +240,67 @@ void PPU::scanfLine(byte line, byte images[]) {
 		CLR_VBLANK();
 	}
 	byte nt_index = N_TABLE_INDEX;
-	word line_t = line + SCROLL_REG[1];
-	if (line_t > 239) {
+	word line_t = line;
+	int index = line * 256 * 4;
+	if (SCROLL_REG[0]) { //水平滚动
+		//属于画面中哪个画面(属于命名表中几号编号) 一共8行 每行32个
+		byte ln = SCROLL_REG[0] >> 3;
+		word n = (line_t >> 3) * 32 + ln;
+		//字模中开始地址 占2个字节 每个字模16字节
+		word m = (line_t & 0x07);
+		//一行32个字幕 sx=x开始坐标
+		word e = n + 32 - ln, sx = 0;
+		int si = 7 - (SCROLL_REG[0] & 0x07);
+		
+		//MessageBox(NULL, ts, L"t", MB_OK);
+		//N_TABLE_INDEX = 0;
+		while (n < e) {
+			//字模编号
+			byte tn = N_TABLE[nt_index][n];
+			//字幕起始地址
+			byte* addr = BGA + (tn * 16);
+			//此字模属性 低6位是属性编号
+			byte attr = A_TABLE[nt_index][CAP_TBALE[n] & 0x3f];
+			//颜色组
+			byte group = (attr >> ((CAP_TBALE[n] >> 6) << 1)) & 0x03;
+			//group = CAP_TBALE[n] >> 6;
+			//背景颜色调色板地址 4组 每组4字节 共16字节
+			byte* col_addr = BGC_TABLE + (group * 4);
+			//默认颜色
+			byte def_color = *BGC_TABLE;
+			//低位字节
+			byte title_low = *(addr + m);
+			//高位字节
+			byte title_high = *(addr + m + 8);
+			//每两位表示一个像素在颜色组中的位置 [前8位是低位，后8位是高位]
+			for (int i = si; i >= 0; i--) {
+				si = 7;
+				//在调色板组中的位置
+				byte pos = (title_low >> i) & 0x01; //低位
+				pos |= ((title_high >> i) & 0x01) << 1; //高位
+				pos &= 0x3; //只有两位 
+							//获取颜色 *(BGC_TABLE + pos) 
+				byte color_n = *BGC_TABLE;
+				if (pos) {
+					//if (pos == 0x1 || pos == 0x2) pos = 0x3;
+					pos |= group << 2;
+					color_n = *(BGC_TABLE + pos);
+				}
+				//color_n = 0x3;
+				/*CString ts;
+				ts.Format(L"tl:%d, th:%d, tn:%d, color_n:%x", title_low, title_high, tn, color_n);
+				MessageBox(NULL, ts, L"t", MB_OK);*/
+				int color = this->rgb(color_n);
+				//color = RGB(0x80, 0x80, 0x80);
+				//填充画面
+				images[index++] = (color >> 16) & 0xff;
+				images[index++] = (color >> 8) & 0xff;
+				images[index++] = (color >> 0) & 0xff;
+				images[index++] = pos;
+			}
+			n++;
+		}
+		/*-------------------------------------*/
 		if (N_TABLE_INDEX == 0) {
 			nt_index = 2;
 		}
@@ -250,80 +313,143 @@ void PPU::scanfLine(byte line, byte images[]) {
 		else if (N_TABLE_INDEX == 3) {
 			nt_index = 1;
 		}
-		line_t -= 240;
-		//MessageBox(NULL, t, L"t", MB_OK);
-	}
-	//属于画面中哪个画面(属于命名表中几号编号) 一共8行 每行32个
-	word n = (line_t >> 3) * 32;
-	//字模中开始地址 占2个字节 每个字模16字节
-	word m = (line_t & 0x07);
-	//一行32个字幕 sx=x开始坐标
-	word e = n + 32, sx = 0;
-	int index = line * 256 * 4;
-	//MessageBox(NULL, ts, L"t", MB_OK);
-	//N_TABLE_INDEX = 0;
-	while (n < e) {
-		//字模编号
-		byte tn = N_TABLE[nt_index][n];
-		//字幕起始地址
-		byte* addr = BGA + (tn * 16);
-		//此字模属性 低6位是属性编号
-		byte attr = A_TABLE[nt_index][CAP_TBALE[n] & 0x3f];
-		//颜色组
-		byte group = (attr >> ((CAP_TBALE[n] >> 6) << 1)) & 0x03;
-		//group = CAP_TBALE[n] >> 6;
-		//背景颜色调色板地址 4组 每组4字节 共16字节
-		byte* col_addr = BGC_TABLE + (group * 4);
-		//默认颜色
-		byte def_color = *BGC_TABLE;
-		//低位字节
-		byte title_low = *(addr + m);
-		//高位字节
-		byte title_high = *(addr + m + 8);
-		//每两位表示一个像素在颜色组中的位置 [前8位是低位，后8位是高位]
-		for (int i = 7; i >= 0; i--) {
-			//在调色板组中的位置
-			byte pos  =  (title_low >> i)  & 0x01; //低位
-			     pos |= ((title_high >> i) & 0x01) << 1; //高位
-				 pos &= 0x3; //只有两位 
-			//获取颜色 *(BGC_TABLE + pos) 
-		    byte color_n = *BGC_TABLE;
-			if (pos) {
-				//if (pos == 0x1 || pos == 0x2) pos = 0x3;
-				pos |= group << 2;
-				color_n = *(BGC_TABLE + pos);
+		//属于画面中哪个画面(属于命名表中几号编号) 一共8行 每行32个
+		ln = SCROLL_REG[0] >> 3;
+		n = (line_t >> 3) * 32;
+		//字模中开始地址 占2个字节 每个字模16字节
+		m = (line_t & 0x07);
+		//一行32个字幕 sx=x开始坐标
+		e = n + 1 + (ln), sx = 0;
+		int ei = 0;
+		//MessageBox(NULL, ts, L"t", MB_OK);
+		//N_TABLE_INDEX = 0;
+		while (n < e) {
+			//字模编号
+			byte tn = N_TABLE[nt_index][n];
+			//字幕起始地址
+			byte* addr = BGA + (tn * 16);
+			//此字模属性 低6位是属性编号
+			byte attr = A_TABLE[nt_index][CAP_TBALE[n] & 0x3f];
+			//颜色组
+			byte group = (attr >> ((CAP_TBALE[n] >> 6) << 1)) & 0x03;
+			//group = CAP_TBALE[n] >> 6;
+			//背景颜色调色板地址 4组 每组4字节 共16字节
+			byte* col_addr = BGC_TABLE + (group * 4);
+			//默认颜色
+			byte def_color = *BGC_TABLE;
+			//低位字节
+			byte title_low = *(addr + m);
+			//高位字节
+			byte title_high = *(addr + m + 8);
+			//每两位表示一个像素在颜色组中的位置 [前8位是低位，后8位是高位]
+			if (n == (e - 1)) {
+				ei = 7 - (SCROLL_REG[0] & 0x07);
 			}
-			//color_n = 0x3;
-			/*CString ts;
-			ts.Format(L"tl:%d, th:%d, tn:%d, color_n:%x", title_low, title_high, tn, color_n);
-			MessageBox(NULL, ts, L"t", MB_OK);*/
-			int color = this->rgb(color_n);
-			//color = RGB(0x80, 0x80, 0x80);
-			//填充画面
-			images[index++] = (color >> 16) & 0xff;
-			images[index++] = (color >> 8) & 0xff;
-			images[index++] = (color >> 0) & 0xff;
-			images[index++] = pos;
-			/*if (dc) {
-				CPen pen(PS_SOLID, 1, this->rgb(color) + line);//创建一个虚线线条，宽度为1，红色的画笔对象  
-				CPen* pOldPen = dc->SelectObject(&pen);//将画笔对象选入到设备描述表中 
-				POINT ps = {sx, line};
-				POINT pe = {sx + 1, line};
-				dc->MoveTo(ps);
-				dc->LineTo(pe);
-				dc->SelectObject(pOldPen);
-				pen.DeleteObject();
-				if (line == 60) {
-					MessageBox(NULL, L"60", L"t", MB_OK);
+			for (int i = 7; i >= ei; i--) {
+				//在调色板组中的位置
+				byte pos = (title_low >> i) & 0x01; //低位
+				pos |= ((title_high >> i) & 0x01) << 1; //高位
+				pos &= 0x3; //只有两位 
+							//获取颜色 *(BGC_TABLE + pos) 
+				byte color_n = *BGC_TABLE;
+				if (pos) {
+					//if (pos == 0x1 || pos == 0x2) pos = 0x3;
+					pos |= group << 2;
+					color_n = *(BGC_TABLE + pos);
 				}
-			}*/
-			sx += 1;
+				//color_n = 0x3;
+				/*CString ts;
+				ts.Format(L"tl:%d, th:%d, tn:%d, color_n:%x", title_low, title_high, tn, color_n);
+				MessageBox(NULL, ts, L"t", MB_OK);*/
+				int color = this->rgb(color_n);
+				//color = RGB(0x80, 0x80, 0x80);
+				//填充画面
+				images[index++] = (color >> 16) & 0xff;
+				images[index++] = (color >> 8) & 0xff;
+				images[index++] = (color >> 0) & 0xff;
+				images[index++] = pos;
+			}
+			n++;
 		}
-		n++;
 	}
+	else { //垂直滚动
+		line_t += SCROLL_REG[1];
+		if (line_t > 239) {
+			if (N_TABLE_INDEX == 0) {
+				nt_index = 2;
+			}
+			else if (N_TABLE_INDEX == 1) {
+				nt_index = 3;
+			}
+			else if (N_TABLE_INDEX == 2) {
+				nt_index = 0;
+			}
+			else if (N_TABLE_INDEX == 3) {
+				nt_index = 1;
+			}
+			line_t -= 240;
+			//MessageBox(NULL, t, L"t", MB_OK);
+		}
+		//属于画面中哪个画面(属于命名表中几号编号) 一共8行 每行32个
+		word n = (line_t >> 3) * 32;
+		//字模中开始地址 占2个字节 每个字模16字节
+		word m = (line_t & 0x07);
+		//一行32个字幕 sx=x开始坐标
+		word e = n + 32, sx = 0;
+		int index = line * 256 * 4;
+		//MessageBox(NULL, ts, L"t", MB_OK);
+		//N_TABLE_INDEX = 0;
+		while (n < e) {
+			//字模编号
+			byte tn = N_TABLE[nt_index][n];
+			//字幕起始地址
+			byte* addr = BGA + (tn * 16);
+			//此字模属性 低6位是属性编号
+			byte attr = A_TABLE[nt_index][CAP_TBALE[n] & 0x3f];
+			//颜色组
+			byte group = (attr >> ((CAP_TBALE[n] >> 6) << 1)) & 0x03;
+			//group = CAP_TBALE[n] >> 6;
+			//背景颜色调色板地址 4组 每组4字节 共16字节
+			byte* col_addr = BGC_TABLE + (group * 4);
+			//默认颜色
+			byte def_color = *BGC_TABLE;
+			//低位字节
+			byte title_low = *(addr + m);
+			//高位字节
+			byte title_high = *(addr + m + 8);
+			//每两位表示一个像素在颜色组中的位置 [前8位是低位，后8位是高位]
+			for (int i = 7; i >= 0; i--) {
+				//在调色板组中的位置
+				byte pos = (title_low >> i) & 0x01; //低位
+				pos |= ((title_high >> i) & 0x01) << 1; //高位
+				pos &= 0x3; //只有两位 
+							//获取颜色 *(BGC_TABLE + pos) 
+				byte color_n = *BGC_TABLE;
+				if (pos) {
+					//if (pos == 0x1 || pos == 0x2) pos = 0x3;
+					pos |= group << 2;
+					color_n = *(BGC_TABLE + pos);
+				}
+				//color_n = 0x3;
+				/*CString ts;
+				ts.Format(L"tl:%d, th:%d, tn:%d, color_n:%x", title_low, title_high, tn, color_n);
+				MessageBox(NULL, ts, L"t", MB_OK);*/
+				int color = this->rgb(color_n);
+				//color = RGB(0x80, 0x80, 0x80);
+				//填充画面
+				images[index++] = (color >> 16) & 0xff;
+				images[index++] = (color >> 8) & 0xff;
+				images[index++] = (color >> 0) & 0xff;
+				images[index++] = pos;
+			}
+			n++;
+		}
+	}
+	
+	
 	int spr_count = 0;
-	for (int j = 252; j > 0; j -= 4) {
-		if (SRAMIN(SRAM[j], SPR_SIZE, line)) {
+	for (int j = 252; j >= 0; j -= 4) {
+		if (SRAM[j] && SRAMIN(SRAM[j] - 1, SPR_SIZE, line)) {
 			spr_count++;
 			index = line * 256 * 4 + (SRAM[j + 3] * 4);
 			//字幕起始地址
@@ -332,7 +458,7 @@ void PPU::scanfLine(byte line, byte images[]) {
 			byte* ptn = SPRA;
 			if (SPR_SIZE == 16) {
 				ptn = &MEM[(tn & 0x01) * 0x1000];
-				if (line < (SRAM[j] + 8)) {
+				if (line < (SRAM[j] - 1 + 8)) {
 					if (tn & 0x01) 
 						tn--;
 				}
@@ -342,7 +468,7 @@ void PPU::scanfLine(byte line, byte images[]) {
 				}
 			}
 			byte* addr = ptn + (tn * 16);
-			byte k = (line - SRAM[j]) & 0x07;
+			byte k = (line - (SRAM[j] - 1)) & 0x07;
 			byte group = sta & 0x03;
 			//每两位表示一个像素在颜色组中的位置 [前8位是低位，后8位是高位]
 			int init_v = 7, step_v = -1;
@@ -357,6 +483,16 @@ void PPU::scanfLine(byte line, byte images[]) {
 			//高位字节
 			byte title_high = *(addr + k + 8);
 			for (int i = init_v; i >= 0 && i < 8; i += step_v) {
+				if (j >= 0) {
+					//CString z;
+					//z.Format(L"J:%d,X:%d,Y:d,P:%d,LINE:%d", j, SRAM[j + 2], SRAM[j] - 1, images[index + 3], line);
+
+					//::MessageBox(NULL, z, L"T", MB_OK);
+					if (images[index + 3] > 0) {
+						REG[2] |= 0x40;
+						//::MessageBox(NULL, L"0号精灵碰撞.", L"T", MB_OK);
+					}
+				}
 				//在调色板组中的位置
 				byte pos = (title_low >> i) & 0x01; //低位
 				pos |= ((title_high >> i) & 0x01) << 1; //高位
@@ -378,6 +514,7 @@ void PPU::scanfLine(byte line, byte images[]) {
 				MessageBox(NULL, ts, L"t", MB_OK);*/
 				int color = this->rgb(color_n);
 				//color = RGB(0x80, 0x80, 0x80);
+				
 				//填充画面
 				if (!(sta & 0x20)) {
 					images[index++] = (color >> 16) & 0xff;
@@ -391,11 +528,6 @@ void PPU::scanfLine(byte line, byte images[]) {
 						images[index++] = (color >> 8) & 0xff;
 						images[index++] = (color >> 0) & 0xff;
 						images[index++] = 0;
-					}
-					else {
-						if (i == 0) {
-							REG[2] |= 0x40;
-						}
 					}
 				}
 			}

@@ -157,6 +157,8 @@ public:
 
 	word pcp;
 
+	byte* images;
+
 	bool test_reg6;
 public:
 	CListCtrl* clist;
@@ -165,6 +167,7 @@ public:
 
 	bool       pause;
 	bool       step;
+	bool       show_asm;
 
 	CPU();
 	void load(char*, size_t, char*, size_t);

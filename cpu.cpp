@@ -51,6 +51,7 @@ CPU::CPU( ) {
 	pcp = 0;
 	pause = false;
 	step = false;
+	show_asm = false;
 	//printf("sizeof err:%d", sizeof(err));
 }
 
@@ -136,7 +137,7 @@ CPU6502_CODE CPU::opcode(byte opcode) {
 	case 0x65: //ADC 0x2B ÁãÒ³ 2×Ö½Ú
 		this->ADC(M_ZERO);
 		ADD_CYCLE(3);
-		opcode += 2;
+		//opcode += 2;
 		break;
 	case 0x75: //ADC 0x2B,X ÁãÒ³X 2×Ö½Ú
 		this->ADC(M_X_ZERO);
@@ -1570,11 +1571,11 @@ void CPU::printAsm() {
 	//return;
 	int dim = exec_opnum - opnum;
 	if (opnum > 9150) {
-		CString rs;
-		rs.Format(L"all num:%d, opnum:%d", exec_opnum, opnum);
+		//CString rs;
+		//rs.Format(L"all num:%d, opnum:%d", exec_opnum, opnum);
 		//SetWindowTextW(GetDlgItem(dbgdlg, 1010), rs);
 	}
-	if ((pcp > 0xfffe || dim <= 100) && clist) {
+	if ((show_asm ||  dim <= 100) && clist) {
 		CString ra, hs(hex_str), as(asm_str), rms(remark);
 		ra.Format(L"%X:", run_addr);
 		//as.Format(L"%s", "fuck");

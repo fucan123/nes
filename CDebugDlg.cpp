@@ -48,7 +48,7 @@ BOOL CDebugDlg::OnInitDialog()
 	g_CPU.dbgdlg = this->m_hWnd;
 	g_CPU.clist = &m_list;
 	//g_CPU.pause = true;
-	g_CPU.reset();
+	//g_CPU.reset();
 
 	//MessageBox(L"INIT");
 	return TRUE;
@@ -139,6 +139,37 @@ void CDebugDlg::OnOK() {
 				}
 				
 			}
+		}
+		if (arr[0] == "asm") {
+			if (arr[1] == '0') {
+				g_CPU.show_asm = false;
+			}
+			else {
+				g_CPU.show_asm = true;
+			}
+			GetDlgItem(IDC_STATIC_OPR)->SetWindowText(L"ÉèÖÃ³É¹¦");
+		}
+		if (arr[0] == "bgi" && count >= 3) {
+			GetDlgItem(IDC_STATIC_OPR)->SetWindowText(L"");
+			int x = CStringHexToInt(arr[1]);
+			int y = CStringHexToInt(arr[2]) - 1;
+			int i = 256 * y * 4 + (x * 4);
+			byte* img = g_CPU.images;
+			bool find = false;
+			CString str;
+			for (int j = 0; j < 8; j++) {
+				if (img[i + 3] > 0) {
+					str.Format(L"COLOR:#%X%X%X, ALPHA:%d", img[i + 2], img[i + 1], img[i], img[i + 3]);
+					find = true;
+					break;
+				}
+				i += 4;
+			}
+			if (!find) {
+				i = 256 * y * 4 + (x * 4);
+				str.Format(L"COLOR:#%X%X%X, ALPHA:%d", img[i + 2], img[i + 1], img[i], img[i + 3]);
+			}
+			GetDlgItem(IDC_STATIC_OPR)->SetWindowText(str);
 		}
 	}
 }

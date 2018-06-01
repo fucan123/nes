@@ -192,6 +192,7 @@ UINT CMainFrame::Game(LPVOID param) {
 	//::MessageBox(NULL, tt, L"title", MB_OK);
 	byte images[256 * 240 * 4];
 	memset(images, 0, sizeof(images));
+	g_CPU.images = images;
 	CString xs;
 	xs.Format(L"thread p:%d", g_CPU.pause);
 	//pFrame->m_wndStatusBar.SetPaneText(2, L"xxx");
