@@ -104,7 +104,7 @@ void PPU::writeREG(byte addr, byte value) {
 	case 5: {
 		SCROLL_REG[REG_FLAG[5]] = value;
 		if (REG_FLAG[5] && value > 239) {
-			SCROLL_REG[1] = 239;
+			//SCROLL_REG[1] = 239;
 		}
 		REG_FLAG[5] ^= 1;
 		break;
@@ -199,11 +199,11 @@ void PPU::writeMEM(word addr, byte value) {
 		word dim = addr - 0x2C00;
 		*(N_TABLE[3] + dim) = value;
 	}
-	else if (addr >= 0x3F00 && addr <= 0x3F0F) {
+	else if (addr == 0x3F00 || addr == 0x3F04 || addr == 0x3F08 || addr == 0x3F0C) {
 		MEM[addr] = value;
 		MEM[addr & 0x000F | 0x3F10] = value; //镜像到0x3F1?
 	}
-	else if (addr == 0x3F10 || addr == 0x3F14 ||  addr == 0x3F18 || addr == 0x3F1C) {
+	else if (addr == 0x3F10 || addr == 0x3F14 || addr == 0x3F18 || addr == 0x3F1C) {
 		MEM[addr] = value;
 		MEM[addr & 0x000F | 0x3F00] = value; //镜像到0x3F1?
 	}
@@ -302,16 +302,16 @@ void PPU::scanfLine(byte line, byte images[]) {
 		}
 		/*-------------------------------------*/
 		if (N_TABLE_INDEX == 0) {
-			nt_index = 2;
+			nt_index = 1;
 		}
 		else if (N_TABLE_INDEX == 1) {
-			nt_index = 3;
-		}
-		else if (N_TABLE_INDEX == 2) {
 			nt_index = 0;
 		}
+		else if (N_TABLE_INDEX == 2) {
+			nt_index = 3;
+		}
 		else if (N_TABLE_INDEX == 3) {
-			nt_index = 1;
+			nt_index = 2;
 		}
 		//属于画面中哪个画面(属于命名表中几号编号) 一共8行 每行32个
 		ln = SCROLL_REG[0] >> 3;
@@ -373,7 +373,15 @@ void PPU::scanfLine(byte line, byte images[]) {
 		}
 	}
 	else { //垂直滚动
-		line_t += SCROLL_REG[1];
+		byte vs = 0;
+		if (SCROLL_REG[1] > 239) {
+			vs = SCROLL_REG[1] - 240;
+			//line_t += vs;
+		}
+		else {
+			line_t += SCROLL_REG[1];
+		}
+		
 		if (line_t > 239) {
 			if (N_TABLE_INDEX == 0) {
 				nt_index = 2;
@@ -390,65 +398,73 @@ void PPU::scanfLine(byte line, byte images[]) {
 			line_t -= 240;
 			//MessageBox(NULL, t, L"t", MB_OK);
 		}
-		//属于画面中哪个画面(属于命名表中几号编号) 一共8行 每行32个
-		word n = (line_t >> 3) * 32;
-		//字模中开始地址 占2个字节 每个字模16字节
-		word m = (line_t & 0x07);
-		//一行32个字幕 sx=x开始坐标
-		word e = n + 32, sx = 0;
-		int index = line * 256 * 4;
-		//MessageBox(NULL, ts, L"t", MB_OK);
-		//N_TABLE_INDEX = 0;
-		while (n < e) {
-			//字模编号
-			byte tn = N_TABLE[nt_index][n];
-			//字幕起始地址
-			byte* addr = BGA + (tn * 16);
-			//此字模属性 低6位是属性编号
-			byte attr = A_TABLE[nt_index][CAP_TBALE[n] & 0x3f];
-			//颜色组
-			byte group = (attr >> ((CAP_TBALE[n] >> 6) << 1)) & 0x03;
-			//group = CAP_TBALE[n] >> 6;
-			//背景颜色调色板地址 4组 每组4字节 共16字节
-			byte* col_addr = BGC_TABLE + (group * 4);
-			//默认颜色
-			byte def_color = *BGC_TABLE;
-			//低位字节
-			byte title_low = *(addr + m);
-			//高位字节
-			byte title_high = *(addr + m + 8);
-			//每两位表示一个像素在颜色组中的位置 [前8位是低位，后8位是高位]
-			for (int i = 7; i >= 0; i--) {
-				//在调色板组中的位置
-				byte pos = (title_low >> i) & 0x01; //低位
-				pos |= ((title_high >> i) & 0x01) << 1; //高位
-				pos &= 0x3; //只有两位 
-							//获取颜色 *(BGC_TABLE + pos) 
-				byte color_n = *BGC_TABLE;
-				if (pos) {
-					//if (pos == 0x1 || pos == 0x2) pos = 0x3;
-					pos |= group << 2;
-					color_n = *(BGC_TABLE + pos);
+		if (1 || line >= vs) {
+			//属于画面中哪个画面(属于命名表中几号编号) 一共8行 每行32个
+			word n = (line_t >> 3) * 32;
+			//字模中开始地址 占2个字节 每个字模16字节
+			word m = (line_t & 0x07);
+			//一行32个字幕 sx=x开始坐标
+			word e = n + 32, sx = 0;
+			int index = line * 256 * 4;
+			//MessageBox(NULL, ts, L"t", MB_OK);
+			//N_TABLE_INDEX = 0;
+			while (n < e) {
+				//字模编号
+				byte tn = N_TABLE[nt_index][n];
+				//字幕起始地址
+				byte* addr = BGA + (tn * 16);
+				//此字模属性 低6位是属性编号
+				byte attr = A_TABLE[nt_index][CAP_TBALE[n] & 0x3f];
+				//颜色组
+				byte group = (attr >> ((CAP_TBALE[n] >> 6) << 1)) & 0x03;
+				//group = CAP_TBALE[n] >> 6;
+				//背景颜色调色板地址 4组 每组4字节 共16字节
+				byte* col_addr = BGC_TABLE + (group * 4);
+				//默认颜色
+				byte def_color = *BGC_TABLE;
+				//低位字节
+				byte title_low = *(addr + m);
+				//高位字节
+				byte title_high = *(addr + m + 8);
+				//每两位表示一个像素在颜色组中的位置 [前8位是低位，后8位是高位]
+				for (int i = 7; i >= 0; i--) {
+					//在调色板组中的位置
+					byte pos = (title_low >> i) & 0x01; //低位
+					pos |= ((title_high >> i) & 0x01) << 1; //高位
+					pos &= 0x3; //只有两位 
+								//获取颜色 *(BGC_TABLE + pos) 
+					if (tn == 0x2e || tn == 0xdd || tn == 0xde) {
+						//CString ts;
+						//ts.Format(L"tn:%X, line:%d, pos:%d", tn, line, pos);
+						//MessageBox(NULL, ts, L"t", MB_OK);
+					}
+					byte color_n = *BGC_TABLE;
+					if (pos) {
+						//if (pos == 0x1 || pos == 0x2) pos = 0x3;
+						pos |= group << 2;
+						color_n = *(BGC_TABLE + pos);
+					
+					}
+					//color_n = 0x3;
+					/*CString ts;
+					ts.Format(L"tl:%d, th:%d, tn:%d, color_n:%x", title_low, title_high, tn, color_n);
+					MessageBox(NULL, ts, L"t", MB_OK);*/
+					int color = this->rgb(color_n);
+					//color = RGB(0x80, 0x80, 0x80);
+					//填充画面
+					images[index++] = (color >> 16) & 0xff;
+					images[index++] = (color >> 8) & 0xff;
+					images[index++] = (color >> 0) & 0xff;
+					images[index++] = pos;
 				}
-				//color_n = 0x3;
-				/*CString ts;
-				ts.Format(L"tl:%d, th:%d, tn:%d, color_n:%x", title_low, title_high, tn, color_n);
-				MessageBox(NULL, ts, L"t", MB_OK);*/
-				int color = this->rgb(color_n);
-				//color = RGB(0x80, 0x80, 0x80);
-				//填充画面
-				images[index++] = (color >> 16) & 0xff;
-				images[index++] = (color >> 8) & 0xff;
-				images[index++] = (color >> 0) & 0xff;
-				images[index++] = pos;
+				n++;
 			}
-			n++;
 		}
 	}
 	
 	
 	int spr_count = 0;
-	for (int j = 252; j >= 0; j -= 4) {
+	for (int j = 252; j >= 0 && 1; j -= 4) {
 		if (SRAM[j] && SRAMIN(SRAM[j] - 1, SPR_SIZE, line)) {
 			spr_count++;
 			index = line * 256 * 4 + (SRAM[j + 3] * 4);

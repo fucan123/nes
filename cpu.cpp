@@ -806,13 +806,13 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 		opsize = 2;
 		break;
 	case M_X_ZERO:
-		addr = opd + R.X;
+		addr = (opd + R.X) & 0xff;
 		sprintf(str, "%02X", opd);
 		sprintf(hstr, "%02X", opd);
 		opsize = 2;
 		break;
 	case M_Y_ZERO:
-		addr = opd + R.Y;
+		addr = (opd + R.Y) & 0xff;
 		sprintf(str, "%02X", opd);
 		sprintf(hstr, "%02X", opd);
 		opsize = 2;
@@ -824,7 +824,13 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 		sprintf(str, "(0x%04X)", tmp);
 		sprintf(hstr, "%02X%02X", opd, opd2);
 		//第一个字节为低8位，第二个为高8位
-		addr = MEM[tmp] | (MEM[tmp + 1] << 8);
+		if (opd == 0xff) { //6502的$6C指令（间接绝对跳转）有一个BUG，当低位字节是$FF时CPU将不能正确计算有效地址
+			addr = MEM[tmp] | (MEM[tmp & 0xff00] << 8);
+		}
+		else {
+			addr = MEM[tmp] | (MEM[tmp + 1] << 8);
+		}
+		
 		opsize = 3;
 	}
 		break;

@@ -198,7 +198,7 @@ UINT CMainFrame::Game(LPVOID param) {
 	//pFrame->m_wndStatusBar.SetPaneText(2, L"xxx");
 	//::MessageBox(NULL, xs, L"t", MB_OK);
 	g_CPU.opnum = 0;
-	g_CPU.exec_opnum = 0x7fffffff;
+	g_CPU.exec_opnum =  0x7fffffff;
 	while (true) {
 		while (g_CPU.opnum < g_CPU.exec_opnum) {
 			//xs.Format(L"thread %d p:%d", g_CPU.opnum, g_CPU.pause);
@@ -229,18 +229,7 @@ UINT CMainFrame::Game(LPVOID param) {
 						g_CPU.NMI();
 						exec_cycles -= 7;
 					}
-					CBitmap bm;
-					bm.CreateBitmap(256, 240, 1, 32, images);
-					BITMAP  bmp;
-					bm.GetBitmap(&bmp);
-					CBitmap* pOldBitmap = dcImage.SelectObject(&bm);
-
-					int width = pFrame->m_wndView.rect.right - pFrame->m_wndView.rect.left;
-					int height = pFrame->m_wndView.rect.bottom - pFrame->m_wndView.rect.top;
-					dc->StretchBlt(0, 0, width, height, &dcImage, 0, 0, bmp.bmWidth, bmp.bmHeight, SRCCOPY);
-					//dc.BitBlt(10, 10, bmp.bmWidth, bmp.bmHeight, &dcImage, 0, 0, SRCCOPY);
-					// TODO: 在此处添加消息处理程序代码
-					dcImage.SelectObject(pOldBitmap);
+					
 				}
 				if (0 && g_CPU.step) {
 					g_CPU.exec(1);
@@ -270,6 +259,18 @@ UINT CMainFrame::Game(LPVOID param) {
 					// TODO: 在此处添加消息处理程序代码
 					dcImage.SelectObject(pOldBitmap);*/
 					//绘制扫描线
+					CBitmap bm;
+					bm.CreateBitmap(256, 240, 1, 32, images);
+					BITMAP  bmp;
+					bm.GetBitmap(&bmp);
+					CBitmap* pOldBitmap = dcImage.SelectObject(&bm);
+
+					int width = pFrame->m_wndView.rect.right - pFrame->m_wndView.rect.left;
+					int height = pFrame->m_wndView.rect.bottom - pFrame->m_wndView.rect.top;
+					dc->StretchBlt(0, 0, width, height, &dcImage, 0, 0, bmp.bmWidth, bmp.bmHeight, SRCCOPY);
+					//dc.BitBlt(10, 10, bmp.bmWidth, bmp.bmHeight, &dcImage, 0, 0, SRCCOPY);
+					// TODO: 在此处添加消息处理程序代码
+					dcImage.SelectObject(pOldBitmap);
 				}
 				if (++line == 312) //全部312扫描完成
 					line = 0;
