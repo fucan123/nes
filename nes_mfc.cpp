@@ -150,10 +150,10 @@ BOOL Cnes_mfcApp::InitInstance()
 	word r = x - dt;
 
 	g_CPU.load(m, 0xffff + 1, m + header.rom_count * 0x4000, 0x2000);
-	g_PPU.load(roms + header.rom_count * 0x4000, 0x2000);
+	g_PPU.load(roms + header.rom_count * 0x4000, 0x2000, header.control1 & 0x01);
 	//g_CPU.write(0x2000, 0x10);
 	CString t;
-	t.Format(L"%02X", (byte)r);
+	t.Format(L"%d", header.control1  &0x01);
 	//::MessageBox(NULL, t, L"t", MB_OK);
 	//AfxBeginThread(CPURun, this);
 	//AfxBeginThread(PPURun, this);

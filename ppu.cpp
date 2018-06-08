@@ -36,7 +36,7 @@ PPU::PPU() {
 	IS_NMI = false;
 }
 
-void PPU::load(char* m, size_t size) {
+void PPU::load(char* m, size_t size, byte ntv) {
 	memset(MEM, 0, 0x8000);
 	memcpy(MEM, m, size);
 	memset(SRAM, 0, 0xff + 1);
@@ -46,6 +46,19 @@ void PPU::load(char* m, size_t size) {
 	//memset(N_TABLE[0], 0x33, 1024);
 	//memset(BGC_TABLE, 33, 16);
 	REG6_ADDR = 0;
+	N_TABLE_V = ntv;
+	if (N_TABLE_V) { //垂直镜像 
+		N_TABLE[0] = N_TABLE[2] = &MEM[0x2000];
+		N_TABLE[1] = N_TABLE[3] = &MEM[0x2400];
+		A_TABLE[0] = A_TABLE[2] = &MEM[0x23C0];
+		A_TABLE[1] = A_TABLE[3] = &MEM[0x27C0];
+	}
+	else { //水平镜像
+		N_TABLE[0] = N_TABLE[1] = &MEM[0x2000];
+		N_TABLE[2] = N_TABLE[3] = &MEM[0x2400];
+		A_TABLE[0] = A_TABLE[1] = &MEM[0x23C0];
+		A_TABLE[2] = A_TABLE[3] = &MEM[0x27C0];
+	}
 }
 //读取寄存器
 byte PPU::readREG(byte addr) {
@@ -144,7 +157,7 @@ void PPU::writeREG(byte addr, byte value) {
 		REG[addr] = value;
 		if (addr == 0) {
 			N_TABLE_INDEX = value & 0x03;
-			N_TABLE_V = value & 0x04 ? 1 : 0;
+			//N_TABLE_V = value & 0x04 ? 1 : 0;
 			if (N_TABLE_INDEX > 0 || N_TABLE_V > 0) {
 				//CString ts;
 				//ts.Format(L"index:%d, v:%d", N_TABLE_INDEX, N_TABLE_V);
@@ -164,18 +177,6 @@ void PPU::writeREG(byte addr, byte value) {
 			}
 			else {
 				SPR_SIZE = 8;
-			}
-			if (N_TABLE_V) { //垂直镜像 
-				N_TABLE[0] = N_TABLE[2] = &MEM[0x2000];
-				N_TABLE[1] = N_TABLE[3] = &MEM[0x2400];
-				A_TABLE[0] = A_TABLE[2] = &MEM[0x23C0];
-				A_TABLE[1] = A_TABLE[3] = &MEM[0x27C0];
-			}
-			else { //水平镜像
-				N_TABLE[0] = N_TABLE[1] = &MEM[0x2000];
-				N_TABLE[2] = N_TABLE[3] = &MEM[0x2400];
-				A_TABLE[0] = A_TABLE[1] = &MEM[0x23C0];
-				A_TABLE[2] = A_TABLE[3] = &MEM[0x27C0];
 			}
 			//最高位控制是否响应NMI中断
 			IS_NMI = value & 0x80 ? true : false;
@@ -499,16 +500,6 @@ void PPU::scanfLine(byte line, byte images[]) {
 			//高位字节
 			byte title_high = *(addr + k + 8);
 			for (int i = init_v; i >= 0 && i < 8; i += step_v) {
-				if (j >= 0) {
-					//CString z;
-					//z.Format(L"J:%d,X:%d,Y:d,P:%d,LINE:%d", j, SRAM[j + 2], SRAM[j] - 1, images[index + 3], line);
-
-					//::MessageBox(NULL, z, L"T", MB_OK);
-					if (images[index + 3] > 0) {
-						REG[2] |= 0x40;
-						//::MessageBox(NULL, L"0号精灵碰撞.", L"T", MB_OK);
-					}
-				}
 				//在调色板组中的位置
 				byte pos = (title_low >> i) & 0x01; //低位
 				pos |= ((title_high >> i) & 0x01) << 1; //高位
@@ -536,14 +527,14 @@ void PPU::scanfLine(byte line, byte images[]) {
 					images[index++] = (color >> 16) & 0xff;
 					images[index++] = (color >> 8) & 0xff;
 					images[index++] = (color >> 0) & 0xff;
-					images[index++] = 0;
+					images[index++] = pos;
 				}
 				else {
 					if (images[index + 3] == 0) {
 						images[index++] = (color >> 16) & 0xff;
 						images[index++] = (color >> 8) & 0xff;
 						images[index++] = (color >> 0) & 0xff;
-						images[index++] = 0;
+						images[index++] = pos;
 					}
 				}
 			}
@@ -555,6 +546,28 @@ void PPU::scanfLine(byte line, byte images[]) {
 	else {
 		REG[2] &= ~(0x20);
 	}
+	/********检测0号精灵是否碰撞到背景↓*******/
+	REG[2] &= ~(0x40);
+	if (SRAM[0] > 0 && SRAM[0] < 240) {
+		byte spr0_x = SRAM[3];
+		byte spr0_y = SRAM[0] - 1;
+		//CString z;
+		//z.Format(L"X:%d,Y:%d", SRAM[3], SRAM[0] - 1);
+
+		//::MessageBox(NULL, z, L"T", MB_OK);
+		for (int pline = 0; pline < 8; pline++) {
+			for (int pcol = 0; pcol < 8; pcol++) {
+				int f = (spr0_y + pline) * 256 * 4 + (spr0_x + pcol) * 4;
+				if (images[f + 3] > 0) {
+					REG[2] |= 0x40; //设置碰撞位
+					goto end;
+					//::MessageBox(NULL, L"0号精灵碰撞.", L"T", MB_OK);
+				}
+			}
+		}
+	}
+	/********检测0号精灵是否碰撞到背景↑*******/
+end:
 	if (line == 239) {
 		//CString ts;
 		//ts.Format(L"vblank, line:%d", line);

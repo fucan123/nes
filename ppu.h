@@ -57,7 +57,7 @@ public:
 public:
 	PPU();
 	//装载卡带图形数据
-	void load(char*, size_t);
+	void load(char*, size_t, byte);
 	//读取寄存器
 	byte readREG(byte addr);
 	//写入寄存器
