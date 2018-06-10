@@ -144,7 +144,42 @@ UINT CMainFrame::Game(LPVOID param) {
 	}
 	//::MessageBox(NULL, L"afx", L"title", MB_OK);
 	//::MessageBox(NULL, L"game", L"title", MB_OK);
+	ID2D1Factory* m_pDirect2dFactory;
+	ID2D1HwndRenderTarget* m_pRenderTarget;
+	D2D1_RECT_U imgrect;
+	RECT rc;
+	HWND hwnd = pFrame->m_wndView.m_hWnd;
+	D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pDirect2dFactory);
 
+	::GetClientRect(hwnd, &rc);
+	int scale = (GetDeviceCaps(::GetDC(hwnd), LOGPIXELSX)) / (float)100 / 0.96;//获得缩放比例  
+	ts.Format(L"w:%d, h:%d, s:%d", rc.right-rc.left, rc.bottom-rc.top, scale);
+	//::MessageBox(NULL, ts, L"title", MB_OK);
+	D2D1_SIZE_U size = D2D1::SizeU
+	(
+		rc.right - rc.left,
+		rc.bottom - rc.top
+	);
+	// Create a Direct2D render target.  
+	m_pDirect2dFactory->CreateHwndRenderTarget(
+		D2D1::RenderTargetProperties(),
+		D2D1::HwndRenderTargetProperties(hwnd, size, D2D1_PRESENT_OPTIONS_IMMEDIATELY),//第三个参数设置不等待垂直同步，默认垂直同步时最高刷新频率为显卡刷新频率，一般60FPS  
+		&m_pRenderTarget
+	);
+	//创建位图  
+	D2D1_SIZE_U imgsize = D2D1::SizeU(256, 240);
+	D2D1_PIXEL_FORMAT pixelFormat =  //位图像素格式描述  
+	{
+		DXGI_FORMAT_B8G8R8A8_UNORM, //该参数设置图像数据区的像素格式，现为RGBA，可根据需要改为别的格式，只是后面的数据拷贝要做相应的调整  
+		D2D1_ALPHA_MODE_IGNORE
+	};
+	D2D1_BITMAP_PROPERTIES prop =  //位图具体信息描述  
+	{
+		pixelFormat,
+		imgsize.width,
+		imgsize.height
+	};
+	m_pRenderTarget->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);//设置图像为抗锯齿模式 
 	/*CRect rect;
 	//GetClientRect(&rect);
 	CBrush brush;
@@ -180,18 +215,24 @@ UINT CMainFrame::Game(LPVOID param) {
 	return 0;*/
 	g_CPU.reset();
 	//一条扫描线时间
-	double line_time = 1 / 50 / 312; //每秒50帧 一帧312条扫描线
+	double line_time = 1.0 / 50.0 / 312.0; //每秒50帧 一帧312条扫描线
 	int line = 0; //第几条扫描线
 	LARGE_INTEGER freq, stime, ctime;
 	QueryPerformanceFrequency(&freq); //获取时钟频率
 	CString tt;
-	//tt.Format(L"%ld", freq.QuadPart);
+	tt.Format(L"%ld, line time:%.20f", freq.QuadPart, line_time);
 	//::MessageBox(NULL, tt, L"title", MB_OK);
 	QueryPerformanceCounter(&stime); //113.6825
 	tt.Format(L"%ld %ld", freq.QuadPart, stime.QuadPart);
 	//::MessageBox(NULL, tt, L"title", MB_OK);
 	byte images[256 * 240 * 4];
 	memset(images, 0, sizeof(images));
+	imgrect.left = 0;
+	imgrect.right = 256;
+	imgrect.top = 0;
+	imgrect.bottom = 240;
+	
+
 	g_CPU.images = images;
 	CString xs;
 	xs.Format(L"thread p:%d", g_CPU.pause);
@@ -229,6 +270,24 @@ UINT CMainFrame::Game(LPVOID param) {
 						g_CPU.NMI();
 						exec_cycles -= 7;
 					}
+					HRESULT r;
+					ID2D1Bitmap* m_pBitmap;
+					if (r = m_pRenderTarget->CreateBitmap(imgsize, images, imgsize.width * 4, &prop, &m_pBitmap)) {
+						CString f;
+						f.Format(L"创建失败:%X,%d", r, GetLastError());
+						::MessageBox(NULL, f, L"title", MB_OK);
+					}
+					m_pRenderTarget->BeginDraw();//跟显示刷新频率有关系  
+					if (m_pBitmap) {
+						m_pBitmap->CopyFromMemory(&imgrect, images, 256 * 4);
+
+						float w = rc.right - rc.left;
+						float h = rc.bottom - rc.top;
+
+						m_pRenderTarget->DrawBitmap(m_pBitmap, D2D1::RectF(0, 0, 620, 400));//该矩形大小会受到"更改文本、应用和其他项目的大小:xxx%"的影响  
+						m_pRenderTarget->EndDraw();
+						m_pBitmap->Release();
+					}
 					
 				}
 				if (0 && g_CPU.step) {
@@ -259,7 +318,7 @@ UINT CMainFrame::Game(LPVOID param) {
 					// TODO: 在此处添加消息处理程序代码
 					dcImage.SelectObject(pOldBitmap);*/
 					//绘制扫描线
-					CBitmap bm;
+					/*CBitmap bm;
 					bm.CreateBitmap(256, 240, 1, 32, images);
 					BITMAP  bmp;
 					bm.GetBitmap(&bmp);
@@ -270,7 +329,26 @@ UINT CMainFrame::Game(LPVOID param) {
 					dc->StretchBlt(0, 0, width, height, &dcImage, 0, 0, bmp.bmWidth, bmp.bmHeight, SRCCOPY);
 					//dc.BitBlt(10, 10, bmp.bmWidth, bmp.bmHeight, &dcImage, 0, 0, SRCCOPY);
 					// TODO: 在此处添加消息处理程序代码
-					dcImage.SelectObject(pOldBitmap);
+					dcImage.SelectObject(pOldBitmap);*/
+					/*HRESULT r;
+					ID2D1Bitmap* m_pBitmap;
+					if (r = m_pRenderTarget->CreateBitmap(imgsize, images, imgsize.width * 4, &prop, &m_pBitmap)) {
+						CString f;
+						f.Format(L"创建失败:%X,%d", r, GetLastError());
+						::MessageBox(NULL, f, L"title", MB_OK);
+					}
+					m_pRenderTarget->BeginDraw();//跟显示刷新频率有关系  
+					if (m_pBitmap) {
+						m_pBitmap->CopyFromMemory(&imgrect, images, 256 * 4);
+
+						float w = rc.right - rc.left;
+						float h = rc.bottom - rc.top;
+
+						m_pRenderTarget->DrawBitmap(m_pBitmap, D2D1::RectF(0, 0, 620, 400));//该矩形大小会受到"更改文本、应用和其他项目的大小:xxx%"的影响  
+						m_pRenderTarget->EndDraw();
+						m_pBitmap->Release();
+					}*/
+					
 				}
 				if (++line == 312) //全部312扫描完成
 					line = 0;

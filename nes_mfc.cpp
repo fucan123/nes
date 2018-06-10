@@ -9,12 +9,17 @@
 #include "CDebugDlg.h"
 #include "CCpuMemDlg.h"
 #include "CPpuMemDlg.h"
+#include "CNesInfoDlg.h"
 #include <iostream>
+
+#pragma comment(lib, "d2d1.lib")
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
+//CPU全局变量
+extern ROM g_ROM;
 //CPU全局变量
 extern CPU g_CPU;
 //CPU全局变量
@@ -35,6 +40,7 @@ BEGIN_MESSAGE_MAP(Cnes_mfcApp, CWinApp)
 	ON_BN_CLICKED(ID_DEBUG, &Cnes_mfcApp::OnDebug)
 	ON_COMMAND(ID_CPU_MEM, &Cnes_mfcApp::OnCPUMem)
 	ON_COMMAND(ID_PPU_MEM, &Cnes_mfcApp::OnPPUMem)
+	ON_COMMAND(ID_NES_INFO, &Cnes_mfcApp::OnNesInfo)
 END_MESSAGE_MAP()
 
 // Cnes_mfcApp 构造
@@ -119,8 +125,18 @@ BOOL Cnes_mfcApp::InitInstance()
 	pFrame->ShowWindow(SW_SHOW);
 	pFrame->UpdateWindow();
 
+	try {
+		if (!g_ROM.open("tk90.nes"))
+			throw "文件打开失败";
+	}
+	catch (char* msg) {
+		CString str(msg);
+		::MessageBox(NULL, str, L"错误提示", MB_OK);
+	}
+	
+
 	struct stat st;
-	FILE* fp = fopen("xmf.nes", "r");
+	FILE* fp = fopen("tk90.nes", "r");
 	if (!fp) {
 	}
 	fstat(_fileno(fp), &st);
@@ -196,6 +212,8 @@ void Cnes_mfcApp::OnPPUMem()
 	((CCpuMemDlg*)dlgppumem)->ShowWindow(SW_SHOWNORMAL);//显示非模态对话框
 }
 
-UINT Cnes_mfcApp::PPURun(LPVOID param) {
-	return 0;
+void Cnes_mfcApp::OnNesInfo()
+{
+	CNesInfoDlg dlg;
+	dlg.DoModal();
 }

@@ -8,6 +8,7 @@
 #define IDR_nes_mfcTYPE                 130
 #define IDD_DIALOG_CPUMEM               311
 #define IDD_DIALOG_PPUMEM               313
+#define IDD_DIALOG_NESINFO              315
 #define IDC_EDIT_DOP                    1001
 #define IDC_LIST2                       1002
 #define IDC_LIST_ASM                    1002
@@ -25,20 +26,24 @@
 #define IDC_EDIT_CPUMEM                 1017
 #define IDC_EDIT_PCP                    1017
 #define IDC_BUTTON_PCP                  1019
+#define IDC_STATIC_NESINFO              1020
 #define ID_32771                        32771
 #define ID_DEBUG                        32772
 #define ID_CPU32773                     32773
 #define ID_PPU32774                     32774
 #define ID_CPU_MEM                      32775
 #define ID_PPU_MEM                      32776
+#define ID_NES32777                     32777
+#define ID_NES                          32778
+#define ID_NES_INFO                     32779
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        315
-#define _APS_NEXT_COMMAND_VALUE         32777
-#define _APS_NEXT_CONTROL_VALUE         1020
+#define _APS_NEXT_RESOURCE_VALUE        317
+#define _APS_NEXT_COMMAND_VALUE         32780
+#define _APS_NEXT_CONTROL_VALUE         1021
 #define _APS_NEXT_SYMED_VALUE           310
 #endif
 #endif

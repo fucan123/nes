@@ -37,6 +37,7 @@ protected:  // 控件条嵌入成员
 	CToolBar          m_wndToolBar;
 	CStatusBar        m_wndStatusBar;
 	CChildView    m_wndView;
+	ID2D1Bitmap*  m_pBitmap;
 
 // 生成的消息映射函数
 protected:

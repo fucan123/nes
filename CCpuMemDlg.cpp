@@ -91,7 +91,7 @@ UINT CCpuMemDlg::ShowMEM(LPVOID param) {
 
 		//pedit->GetLine;
 		pedit->LineScroll(nVertPos);
-		Sleep(500);
+		Sleep(50);
 	}
 exit:
 	return 0;

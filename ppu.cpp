@@ -42,6 +42,9 @@ void PPU::load(char* m, size_t size, byte ntv) {
 	memset(SRAM, 0, 0xff + 1);
 	memset(REG, 0, 8);
 	memset(REG_FLAG, 0, 8);
+	memset(HAND, 0, 2);
+	memset(HAND_COUNT, 0, 2);
+	memset(HAND_KEY, 0, 2 * 8);
 	REG_FLAG[5] = 1;
 	//memset(N_TABLE[0], 0x33, 1024);
 	//memset(BGC_TABLE, 33, 16);

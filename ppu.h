@@ -24,6 +24,18 @@ public:
 	//精灵[角色]内存
 	byte SRAM[0xff + 1];
 
+	//手柄
+	byte HAND[2];
+
+	//手柄计数器
+	byte HAND_COUNT[2];
+
+	/*
+	手柄按键信息1-按下
+	1-A 2-B 3-选择 4-开始 5-上 6-下 7-左 8-右
+	*/
+	byte HAND_KEY[2][8];
+
 	//背景图形地址
 	byte* BGA;
 

@@ -8,6 +8,7 @@
 #endif
 
 #include "resource.h"       // 主符号
+#include "nes/rom.h"
 #include "cpu.h"
 #include "ppu.h"
 
@@ -32,13 +33,11 @@ public:
 // 实现
 
 public:
-	afx_msg void OnAppAbout();
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnDebug();
-	static UINT CPURun(LPVOID param);
-	static UINT PPURun(LPVOID param);
 	afx_msg void OnCPUMem();
 	afx_msg void OnPPUMem();
+	afx_msg void OnNesInfo();
 };
 
 extern Cnes_mfcApp theApp;

@@ -4,10 +4,13 @@
 // stdafx.obj 将包含预编译类型信息
 
 #include "stdafx.h"
+#include <d2d1.h> 
 #include "g.h"
+#include "nes/rom.h"
 #include "cpu.h"
 #include "ppu.h"
 
+ROM g_ROM;
 CPU g_CPU;
 PPU g_PPU;
 
