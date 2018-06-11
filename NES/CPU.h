@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include <iostream>
-#include "ppu.h"
+#include "PPU.h"
 
 #ifndef CPUH
 #define CPUH

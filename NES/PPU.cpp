@@ -1,6 +1,6 @@
 #pragma once
-#include "stdafx.h"
-#include "ppu.h"
+#include "../stdafx.h"
+#include "PPU.h"
 
 #define VBLANK_FLAG 0x80
 #define SET_VBLANK() REG[2] |= VBLANK_FLAG

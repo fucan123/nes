@@ -8,9 +8,9 @@
 #endif
 
 #include "resource.h"       // 主符号
-#include "nes/rom.h"
-#include "cpu.h"
-#include "ppu.h"
+#include "NES/ROM.h"
+#include "NES/CPU.h"
+#include "NES/PPU.h"
 
 // Cnes_mfcApp:
 // 有关此类的实现，请参阅 nes_mfc.cpp

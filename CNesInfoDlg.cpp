@@ -25,9 +25,9 @@ BOOL CNesInfoDlg::OnInitDialog()
 		DEFAULT_PITCH&FF_SWISS, L"Courier New");
 	GetDlgItem(IDC_STATIC_NESINFO)->SetFont(&cFont);
 
-	NES_HEADER* h = g_ROM.getHeader();
-	int mapper = (h->control1 >> 4) | (h->control2 & 0xf0);
-	CString name(g_ROM.getFile());
+	NES_HEADER* h = g_ROM.GetHeader();
+	int mapper = (h->Control1 >> 4) | (h->Control2 & 0xf0);
+	CString name(g_ROM.GetFile());
 	CString info;
 	info.Format(
 		L"文件名称: %s\r\n"\
@@ -38,11 +38,11 @@ BOOL CNesInfoDlg::OnInitDialog()
 		"MAPPER号: %d"
 		,
 		name.GetBuffer(),
-		h->id[0], h->id[1], h->id[2], h->id[3], h->id[0], h->id[1], h->id[2], h->id[3],
-		h->rom_count, h->rom_count * 16, h->vrom_count, h->vrom_count * 8, h->rom_count * 16 + h->vrom_count * 8,
+		h->ID[0], h->ID[1], h->ID[2], h->ID[3], h->ID[0], h->ID[1], h->ID[2], h->ID[3],
+		h->PRG_PAGE_SIZE, h->PRG_PAGE_SIZE * 16, h->CHR_PAGE_Size, h->CHR_PAGE_Size * 8, h->PRG_PAGE_SIZE * 16 + h->CHR_PAGE_Size * 8,
 		mapper);
 	CString info2 = L"\r\n镜像类型: ";
-	if (h->control1 & 0x01) {
+	if (h->Control1 & 0x01) {
 		info2 += L"垂直镜像(1)";
 	}
 	else {
@@ -50,7 +50,7 @@ BOOL CNesInfoDlg::OnInitDialog()
 	}
 
 	info2 += L"\r\n电池记忆: ";
-	if (h->control1 & 0x02) {
+	if (h->Control1 & 0x02) {
 		info2 += L"有(1)";
 	}
 	else {
@@ -58,7 +58,7 @@ BOOL CNesInfoDlg::OnInitDialog()
 	}
 
 	info2 += L"\r\n是否四屏: ";
-	if (h->control1 & 0x08) {
+	if (h->Control1 & 0x08) {
 		info2 += L"是(1)";
 	}
 	else {
@@ -66,7 +66,7 @@ BOOL CNesInfoDlg::OnInitDialog()
 	}
 
 	info2 += L"\r\n-Trainer: ";
-	if (h->control1 & 0x04) {
+	if (h->Control1 & 0x04) {
 		info2 += L"有(1)";
 	}
 	else {

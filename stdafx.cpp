@@ -6,10 +6,7 @@
 #include "stdafx.h"
 #include <d2d1.h> 
 #include "g.h"
-#include "nes/mmu.h"
-#include "nes/rom.h"
-#include "cpu.h"
-#include "ppu.h"
+#include "NES/NES.h"
 
 ROM g_ROM;
 CPU g_CPU;

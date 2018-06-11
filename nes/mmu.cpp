@@ -1,4 +1,4 @@
-#include "mmu.h"
+#include "MMU.h"
 
 BYTE* CPU_MEM_BANK[8];  // 8K段, CPU最大支持内存0x10000[0x0000-0xFFFF], 所以需要8个储存单元(0x10000/0x2000=8)
 BYTE  RAM [8 * 1024];   // 2K-RAM 做了4次镜像, 0x0000-0x1FFF
@@ -16,8 +16,6 @@ void MMC_INIT() {
 	Set_PRGRom_Bank(1, PRAM);
 	Set_PRGRom_Bank(2, ERAM);
 	Set_PRGRom_Bank(3, SRAM);
-
-	PRGRom_8K_Size = 2;
 }
 
 void Set_PRGRom_Bank(BYTE page, BYTE* ptr) {

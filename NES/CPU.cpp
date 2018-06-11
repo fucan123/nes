@@ -1,8 +1,8 @@
 #pragma once
 
-#include "stdafx.h"
-#include "cpu.h"
-#include "ppu.h"
+#include "../stdafx.h"
+#include "CPU.h"
+#include "PPU.h"
 
 #ifndef CPUCPP
 #define CPUCPP

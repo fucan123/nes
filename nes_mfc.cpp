@@ -126,7 +126,7 @@ BOOL Cnes_mfcApp::InitInstance()
 	pFrame->UpdateWindow();
 
 	try {
-		if (!g_ROM.open("hdl-u.nes"))
+		if (!g_ROM.Open("hdl-u.nes"))
 			throw "文件打开失败";
 	}
 	catch (char* msg) {

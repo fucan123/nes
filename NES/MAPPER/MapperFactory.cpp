@@ -1,6 +1,4 @@
-#include "mapper0.h"
-#include "mapper1.h"
-#include "mapper2.h"
+#include "MAPPERFACTORY.h"
 
 Mapper* CreateMapper(BYTE no) {
 	switch (no)
