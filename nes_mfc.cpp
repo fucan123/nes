@@ -126,7 +126,7 @@ BOOL Cnes_mfcApp::InitInstance()
 	pFrame->UpdateWindow();
 
 	try {
-		if (!g_ROM.open("tk90.nes"))
+		if (!g_ROM.open("hdl-u.nes"))
 			throw "文件打开失败";
 	}
 	catch (char* msg) {
@@ -136,7 +136,7 @@ BOOL Cnes_mfcApp::InitInstance()
 	
 
 	struct stat st;
-	FILE* fp = fopen("tk90.nes", "r");
+	FILE* fp = fopen("cjml.nes", "r");
 	if (!fp) {
 	}
 	fstat(_fileno(fp), &st);
@@ -159,7 +159,7 @@ BOOL Cnes_mfcApp::InitInstance()
 		memcpy(&m[0xc000], roms, 0x4000); 
 	
 	}
-	if (header.rom_count == 2) {
+	if (header.rom_count >= 2) {
 		memcpy(&m[0x8000], roms, 0x8000);
 	}
 	word x = 0x01, dt = 0x0d;

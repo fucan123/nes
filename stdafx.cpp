@@ -1,11 +1,12 @@
-
-// stdafx.cpp : Ö»°üÀ¨±ê×¼°üº¬ÎÄ¼şµÄÔ´ÎÄ¼ş
-// nes_mfc.pch ½«×÷ÎªÔ¤±àÒëÍ·
-// stdafx.obj ½«°üº¬Ô¤±àÒëÀàĞÍĞÅÏ¢
+ï»¿
+// stdafx.cpp : åªåŒ…æ‹¬æ ‡å‡†åŒ…å«æ–‡ä»¶çš„æºæ–‡ä»¶
+// nes_mfc.pch å°†ä½œä¸ºé¢„ç¼–è¯‘å¤´
+// stdafx.obj å°†åŒ…å«é¢„ç¼–è¯‘ç±»å‹ä¿¡æ¯
 
 #include "stdafx.h"
 #include <d2d1.h> 
 #include "g.h"
+#include "nes/mmu.h"
 #include "nes/rom.h"
 #include "cpu.h"
 #include "ppu.h"
