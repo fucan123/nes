@@ -3,8 +3,11 @@
 #ifndef PPUH
 #define PPUH
 
+class NES;
+
 class PPU {
 public:
+	NES* nes;
 	//寄存器6号地址
 	word REG6_ADDR;
 	word REG7_ADDR;
@@ -67,9 +70,9 @@ public:
 	//是否可响应NMI中断
 	bool IS_NMI;
 public:
-	PPU();
+	PPU(NES*);
 	//装载卡带图形数据
-	void load(char*, size_t, byte);
+	void load(BYTE*, size_t, byte);
 	//读取寄存器
 	byte readREG(byte addr);
 	//写入寄存器

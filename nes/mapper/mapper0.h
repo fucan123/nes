@@ -3,5 +3,5 @@
 
 class Mapper0 : public Mapper {
 public:
-	void REST();
+	void RESET();
 };

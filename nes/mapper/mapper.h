@@ -5,6 +5,6 @@
 
 class Mapper {
 public:
-	virtual void REST() = 0;
+	virtual void RESET() = 0;
 	virtual	void Write(WORD addr, BYTE data) {}
 };

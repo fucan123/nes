@@ -7,7 +7,8 @@
 class CPpuMemDlg : public CDialogEx
 {
 public:
-	CPpuMemDlg();
+	NES* nes;
+	CPpuMemDlg(NES*);
 	int thread_exit;
 	// 对话框数据
 #ifdef AFX_DESIGN_TIME

@@ -12,6 +12,7 @@ class CChildView : public CWnd
 {
 // 构造
 public:
+	NES* nes;
 	CChildView();
 
 // 特性

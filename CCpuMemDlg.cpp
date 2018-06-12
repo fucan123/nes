@@ -1,14 +1,17 @@
 #include "stdafx.h"
 #include "nes_mfc.h"
 #include "CCpuMemDlg.h"
+#include "NES/NES.h"
 
 extern int CStringHexToInt(CString str);
 extern CString* explode(wchar_t* separator, CString str, int* count);
 extern CPU g_CPU;
 extern PPU g_PPU;
 
-CCpuMemDlg::CCpuMemDlg() : CDialogEx(IDD_DIALOG_CPUMEM)
+CCpuMemDlg::CCpuMemDlg(NES* p) : CDialogEx(IDD_DIALOG_CPUMEM)
 {
+	nes = p;
+	thread_exit = 0;
 }
 
 BOOL CCpuMemDlg::PreTranslateMessage(MSG* pMsg) {
@@ -58,6 +61,7 @@ HBRUSH CCpuMemDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 
 UINT CCpuMemDlg::ShowMEM(LPVOID param) {
 	CCpuMemDlg* dlg = (CCpuMemDlg*)param;
+	NES* nes = dlg->nes;
 	while (true) {
 		if (dlg->thread_exit == 1) {
 			dlg->thread_exit = 2;
@@ -71,10 +75,10 @@ UINT CCpuMemDlg::ShowMEM(LPVOID param) {
 			CString temp;
 			temp.Format(L"%04X   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
 				i,
-				g_CPU.MEM[i], g_CPU.MEM[i + 1], g_CPU.MEM[i + 2], g_CPU.MEM[i + 3], g_CPU.MEM[i + 4],
-				g_CPU.MEM[i + 5], g_CPU.MEM[i + 6], g_CPU.MEM[i + 7], g_CPU.MEM[i + 8], g_CPU.MEM[i + 9],
-				g_CPU.MEM[i + 10], g_CPU.MEM[i + 11], g_CPU.MEM[i + 12], g_CPU.MEM[i + 13], g_CPU.MEM[i + 14],
-				g_CPU.MEM[i + 15]);
+				nes->cpu->Read(i), nes->cpu->Read(i + 1), nes->cpu->Read(i + 2), nes->cpu->Read(i + 3), nes->cpu->Read(i + 4),
+				nes->cpu->Read(i + 5), nes->cpu->Read(i + 6), nes->cpu->Read(i + 7), nes->cpu->Read(i + 8), nes->cpu->Read(i + 9),
+				nes->cpu->Read(i + 10), nes->cpu->Read(i + 11), nes->cpu->Read(i + 12), nes->cpu->Read(i + 13), nes->cpu->Read(i + 14),
+				nes->cpu->Read(i + 15));
 			text += temp;
 		}
 		

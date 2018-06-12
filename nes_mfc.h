@@ -23,7 +23,8 @@ protected:
 	void *dlgcpumem;
 	void *dlgppumem;
 public:
-	
+	NES* nes;
+
 	Cnes_mfcApp();
 // 重写
 public:

@@ -3,6 +3,6 @@
 
 class Mapper2: public Mapper {
 public:
-	void REST();
+	void RESET();
 	virtual	void Write(WORD addr, BYTE data);
 };

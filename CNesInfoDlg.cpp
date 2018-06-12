@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "nes_mfc.h"
 #include "CNesInfoDlg.h"
+#include "NES/NES.h"
 
 extern int CStringHexToInt(CString str);
 extern CString* explode(wchar_t* separator, CString str, int* count);
@@ -8,8 +9,9 @@ extern ROM g_ROM;
 extern CPU g_CPU;
 extern PPU g_PPU;
 
-CNesInfoDlg::CNesInfoDlg() : CDialogEx(IDD_DIALOG_NESINFO)
+CNesInfoDlg::CNesInfoDlg(NES* p) : CDialogEx(IDD_DIALOG_NESINFO)
 {
+	nes = p;
 }
 
 BEGIN_MESSAGE_MAP(CNesInfoDlg, CDialogEx)
@@ -25,19 +27,19 @@ BOOL CNesInfoDlg::OnInitDialog()
 		DEFAULT_PITCH&FF_SWISS, L"Courier New");
 	GetDlgItem(IDC_STATIC_NESINFO)->SetFont(&cFont);
 
-	NES_HEADER* h = g_ROM.GetHeader();
+	NES_HEADER* h = nes->rom->GetHeader();
 	int mapper = (h->Control1 >> 4) | (h->Control2 & 0xf0);
-	CString name(g_ROM.GetFile());
+	CString name(nes->rom->GetFile());
 	CString info;
 	info.Format(
-		L"文件名称: %s\r\n"\
+		L"文件名称: %s(%dKB)\r\n"\
 		"文件字符: %c%c%c%c(%02x%02X%02X%02X)\r\n"\
 		"ROM-数量: %d(%dKB)\r\n"\
 		"VROM数量: %d(%dKB)\r\n"\
 		"总的容量: %dKB\r\n"\
 		"MAPPER号: %d"
 		,
-		name.GetBuffer(),
+		name.GetBuffer(), nes->rom->filesize / 1024,
 		h->ID[0], h->ID[1], h->ID[2], h->ID[3], h->ID[0], h->ID[1], h->ID[2], h->ID[3],
 		h->PRG_PAGE_SIZE, h->PRG_PAGE_SIZE * 16, h->CHR_PAGE_Size, h->CHR_PAGE_Size * 8, h->PRG_PAGE_SIZE * 16 + h->CHR_PAGE_Size * 8,
 		mapper);
@@ -81,7 +83,24 @@ BOOL CNesInfoDlg::OnInitDialog()
 		info2 += n;
 	}
 
-	GetDlgItem(IDC_STATIC_NESINFO)->SetWindowText(info+info2);
+
+	CString info3 = L"\r\n最二十六: ";
+	int mi = nes->rom->filesize - 1 - 16;
+	for (int i = 15; i >= 0; i--) {
+		CString n;
+		n.Format(L"%02X ", nes->rom->rom[mi - i]);
+		info3 += n;
+	}
+
+	CString info4 = L"\r\n最后十六: ";
+	mi = nes->rom->filesize - 1;
+	for (int i = 15; i >= 0; i--) {
+		CString n;
+		n.Format(L"%02X ", nes->rom->rom[mi - i]);
+		info4 += n;
+	}
+
+	GetDlgItem(IDC_STATIC_NESINFO)->SetWindowText(info+info2+info3+info4);
 
 	return TRUE;
 }

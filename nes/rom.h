@@ -17,11 +17,12 @@ typedef struct {
 class ROM {
 public:
 	char* file;
+	long  filesize;
 	BYTE* rom;
 	NES_HEADER header;
 public:
 	ROM();
-	~ROM() { if (rom) delete[] rom; }
+	~ROM();
 	
 	bool Open(char* file);
 	char* GetFile() const { return file;  }

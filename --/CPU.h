@@ -2,6 +2,8 @@
 
 #include <stdio.h>
 #include <iostream>
+#include "MMU.h"
+#include "PPU.h"
 
 #ifndef CPUH
 #define CPUH
@@ -123,12 +125,8 @@ enum CPU_ECODE {
 	OP_ERR     = 1, //÷∏¡Ó¥ÌŒÛ
 };
 
-class NES;
-
 class CPU {
 public:
-	NES*       nes;
-
 	CPU6502    R;
 	word       DT;
 	word       WT;
@@ -172,14 +170,13 @@ public:
 	bool       step;
 	bool       show_asm;
 
-	CPU(NES* p);
+	CPU();
 	void load(char*, size_t, char*, size_t);
-	void RESET();
+	void reset();
 	void run(int);
 	int exec(int request_cycles);
 
-	byte Read(word addr);
-	WORD ReadW(WORD addr);
+	byte read(word addr);
 	CPU6502_CODE opcode(byte);
 	byte value(CPU6502_MODE, word* paddr=NULL);
 	void write(word addr, byte value);

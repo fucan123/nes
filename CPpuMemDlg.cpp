@@ -1,14 +1,16 @@
 #include "stdafx.h"
 #include "nes_mfc.h"
 #include "CPpuMemDlg.h"
+#include "NES/NES.h"
 
 extern int CStringHexToInt(CString str);
 extern CString* explode(wchar_t* separator, CString str, int* count);
 extern CPU g_CPU;
 extern PPU g_PPU;
 
-CPpuMemDlg::CPpuMemDlg() : CDialogEx(IDD_DIALOG_PPUMEM)
+CPpuMemDlg::CPpuMemDlg(NES* p) : CDialogEx(IDD_DIALOG_PPUMEM)
 {
+	nes = p;
 	thread_exit = 0;
 }
 
@@ -58,6 +60,7 @@ HBRUSH CPpuMemDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 
 UINT CPpuMemDlg::ShowMEM(LPVOID param) {
 	CPpuMemDlg* dlg = (CPpuMemDlg*)param;
+	NES* nes = dlg->nes;
 	while (true) {
 		if (dlg->thread_exit == 1) {
 			dlg->thread_exit = 2;
@@ -70,10 +73,10 @@ UINT CPpuMemDlg::ShowMEM(LPVOID param) {
 			CString temp;
 			temp.Format(L"%02X     %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
 				i,
-				g_PPU.SRAM[i], g_PPU.SRAM[i + 1], g_PPU.SRAM[i + 2], g_PPU.SRAM[i + 3], g_PPU.SRAM[i + 4],
-				g_PPU.SRAM[i + 5], g_PPU.SRAM[i + 6], g_PPU.SRAM[i + 7], g_PPU.SRAM[i + 8], g_PPU.SRAM[i + 9],
-				g_PPU.SRAM[i + 10], g_PPU.SRAM[i + 11], g_PPU.SRAM[i + 12], g_PPU.SRAM[i + 13], g_PPU.SRAM[i + 14],
-				g_PPU.SRAM[i + 15]);
+				nes->ppu->SRAM[i], nes->ppu->SRAM[i + 1], nes->ppu->SRAM[i + 2], nes->ppu->SRAM[i + 3], nes->ppu->SRAM[i + 4],
+				nes->ppu->SRAM[i + 5], nes->ppu->SRAM[i + 6], nes->ppu->SRAM[i + 7], nes->ppu->SRAM[i + 8], nes->ppu->SRAM[i + 9],
+				nes->ppu->SRAM[i + 10], nes->ppu->SRAM[i + 11], nes->ppu->SRAM[i + 12], nes->ppu->SRAM[i + 13], nes->ppu->SRAM[i + 14],
+				nes->ppu->SRAM[i + 15]);
 			text += temp;
 		}
 
@@ -83,10 +86,10 @@ UINT CPpuMemDlg::ShowMEM(LPVOID param) {
 			CString temp;
 			temp.Format(L"%04X   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
 				i,
-				g_PPU.MEM[i], g_PPU.MEM[i + 1], g_PPU.MEM[i + 2], g_PPU.MEM[i + 3], g_PPU.MEM[i + 4],
-				g_PPU.MEM[i + 5], g_PPU.MEM[i + 6], g_PPU.MEM[i + 7], g_PPU.MEM[i + 8], g_PPU.MEM[i + 9],
-				g_PPU.MEM[i + 10], g_PPU.MEM[i + 11], g_PPU.MEM[i + 12], g_PPU.MEM[i + 13], g_PPU.MEM[i + 14],
-				g_PPU.MEM[i + 15]);
+				nes->ppu->MEM[i], nes->ppu->MEM[i + 1], nes->ppu->MEM[i + 2], nes->ppu->MEM[i + 3], nes->ppu->MEM[i + 4],
+				nes->ppu->MEM[i + 5], nes->ppu->MEM[i + 6], nes->ppu->MEM[i + 7], nes->ppu->MEM[i + 8], nes->ppu->MEM[i + 9],
+				nes->ppu->MEM[i + 10], nes->ppu->MEM[i + 11], nes->ppu->MEM[i + 12], nes->ppu->MEM[i + 13], nes->ppu->MEM[i + 14],
+				nes->ppu->MEM[i + 15]);
 			//text += temp;
 		}
 
@@ -95,22 +98,28 @@ UINT CPpuMemDlg::ShowMEM(LPVOID param) {
 		text += L"----   00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F\r\n";
 		i = 0x3F00;
 		temp.Format(L"NMI:%d, REG6 ADDR:%X, REG7_ADDR:%X, N_TABLE_V:%d, N_TABLE_INDEX:%d\r\nSCROLL_REG:%d-%d\r\nSPR_SIZE:%d\r\n", 
-			g_PPU.IS_NMI, g_PPU.REG6_ADDR, g_PPU.REG7_ADDR, g_PPU.N_TABLE_V, g_PPU.N_TABLE_INDEX, g_PPU.SCROLL_REG[0], g_PPU.SCROLL_REG[1],
-			g_PPU.SPR_SIZE);
+			nes->ppu->IS_NMI, nes->ppu->REG6_ADDR, nes->ppu->REG7_ADDR, nes->ppu->N_TABLE_V, nes->ppu->N_TABLE_INDEX, nes->ppu->SCROLL_REG[0], nes->ppu->SCROLL_REG[1],
+			nes->ppu->SPR_SIZE);
+		text += temp;
+
+		text += L"¼Ä´æÆ÷\r\n";
+		text += L"----   00  01  02  03  04  05  06  07\r\n";
+		temp.Format(L"0:%02X, 1:%02X, 2:%02X, 3:%02X, 4:%02X, 5:%02X, 6:%02X, 7:%02X\r\n",
+			nes->ppu->REG[0], nes->ppu->REG[1], nes->ppu->REG[2], nes->ppu->REG[3], nes->ppu->REG[4], nes->ppu->REG[5], nes->ppu->REG[6], nes->ppu->REG[7]);
 		text += temp;
 
 		temp.Format(L"±³¾°   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
-			g_PPU.MEM[i], g_PPU.MEM[i + 1], g_PPU.MEM[i + 2], g_PPU.MEM[i + 3], g_PPU.MEM[i + 4],
-			g_PPU.MEM[i + 5], g_PPU.MEM[i + 6], g_PPU.MEM[i + 7], g_PPU.MEM[i + 8], g_PPU.MEM[i + 9],
-			g_PPU.MEM[i + 10], g_PPU.MEM[i + 11], g_PPU.MEM[i + 12], g_PPU.MEM[i + 13], g_PPU.MEM[i + 14],
-			g_PPU.MEM[i + 15]);
+			nes->ppu->MEM[i], nes->ppu->MEM[i + 1], nes->ppu->MEM[i + 2], nes->ppu->MEM[i + 3], nes->ppu->MEM[i + 4],
+			nes->ppu->MEM[i + 5], nes->ppu->MEM[i + 6], nes->ppu->MEM[i + 7], nes->ppu->MEM[i + 8], nes->ppu->MEM[i + 9],
+			nes->ppu->MEM[i + 10], nes->ppu->MEM[i + 11], nes->ppu->MEM[i + 12], nes->ppu->MEM[i + 13], nes->ppu->MEM[i + 14],
+			nes->ppu->MEM[i + 15]);
 		text += temp; 
 		i = 0x3F10;
 		temp.Format(L"¾«Áé   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
-			g_PPU.MEM[i], g_PPU.MEM[i + 1], g_PPU.MEM[i + 2], g_PPU.MEM[i + 3], g_PPU.MEM[i + 4],
-			g_PPU.MEM[i + 5], g_PPU.MEM[i + 6], g_PPU.MEM[i + 7], g_PPU.MEM[i + 8], g_PPU.MEM[i + 9],
-			g_PPU.MEM[i + 10], g_PPU.MEM[i + 11], g_PPU.MEM[i + 12], g_PPU.MEM[i + 13], g_PPU.MEM[i + 14],
-			g_PPU.MEM[i + 15]);
+			nes->ppu->MEM[i], nes->ppu->MEM[i + 1], nes->ppu->MEM[i + 2], nes->ppu->MEM[i + 3], nes->ppu->MEM[i + 4],
+			nes->ppu->MEM[i + 5], nes->ppu->MEM[i + 6], nes->ppu->MEM[i + 7], nes->ppu->MEM[i + 8], nes->ppu->MEM[i + 9],
+			nes->ppu->MEM[i + 10], nes->ppu->MEM[i + 11], nes->ppu->MEM[i + 12], nes->ppu->MEM[i + 13], nes->ppu->MEM[i + 14],
+			nes->ppu->MEM[i + 15]);
 		text += temp;
 		text += L"ÃüÃû±í/ÊôÐÔ±í\r\n";
 		text += L"----   00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F\r\n";
@@ -118,10 +127,10 @@ UINT CPpuMemDlg::ShowMEM(LPVOID param) {
 			CString temp;
 			temp.Format(L"%04X   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
 				i,
-				g_PPU.MEM[i], g_PPU.MEM[i + 1], g_PPU.MEM[i + 2], g_PPU.MEM[i + 3], g_PPU.MEM[i + 4],
-				g_PPU.MEM[i + 5], g_PPU.MEM[i + 6], g_PPU.MEM[i + 7], g_PPU.MEM[i + 8], g_PPU.MEM[i + 9],
-				g_PPU.MEM[i + 10], g_PPU.MEM[i + 11], g_PPU.MEM[i + 12], g_PPU.MEM[i + 13], g_PPU.MEM[i + 14],
-				g_PPU.MEM[i + 15]);
+				nes->ppu->MEM[i], nes->ppu->MEM[i + 1], nes->ppu->MEM[i + 2], nes->ppu->MEM[i + 3], nes->ppu->MEM[i + 4],
+				nes->ppu->MEM[i + 5], nes->ppu->MEM[i + 6], nes->ppu->MEM[i + 7], nes->ppu->MEM[i + 8], nes->ppu->MEM[i + 9],
+				nes->ppu->MEM[i + 10], nes->ppu->MEM[i + 11], nes->ppu->MEM[i + 12], nes->ppu->MEM[i + 13], nes->ppu->MEM[i + 14],
+				nes->ppu->MEM[i + 15]);
 			text += temp;
 		}
 		int nVertPos = dlg->GetDlgItem(IDC_EDIT_PPUMEM)->GetScrollPos(SB_VERT);
@@ -137,7 +146,7 @@ UINT CPpuMemDlg::ShowMEM(LPVOID param) {
 		
 		//pedit->GetLine;
 		pedit->LineScroll(nVertPos);
-		Sleep(50);
+		Sleep(100);
 	}
 exit:
 	return 0;

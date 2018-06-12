@@ -7,7 +7,8 @@
 #define CLR_VBLANK() REG[2] &= (~VBLANK_FLAG)
 #define SRAMIN(y, h, l) ((l >= y) && (l < (y + h)))
 
-PPU::PPU() {
+PPU::PPU(NES* p) {
+	nes = p;
 	BGA     = MEM + 0x1000;
 	SPRA    = MEM + 0x0000;
 	N_TABLE[0] = N_TABLE[1] = MEM + 0x2000;
@@ -36,7 +37,7 @@ PPU::PPU() {
 	IS_NMI = false;
 }
 
-void PPU::load(char* m, size_t size, byte ntv) {
+void PPU::load(BYTE* m, size_t size, byte ntv) {
 	memset(MEM, 0, 0x8000);
 	memcpy(MEM, m, size);
 	memset(SRAM, 0, 0xff + 1);
@@ -68,9 +69,13 @@ byte PPU::readREG(byte addr) {
 	addr &= 0x07;
 	//MessageBox(NULL, L"READ PPU REG!", L"t", MB_OK);
 	byte value = REG[addr];
+	if (value) {
+		//MessageBox(NULL, L"READ PPU REG!", L"t", MB_OK);
+	}
 	switch (addr)
 	{
 	case 2: //读端口2002 vblank位复位
+		
 		REG_FLAG[5] = 0; //复位
 		REG_FLAG[6] = 0; //复位
 		REG6_ADDR = 0;
@@ -577,6 +582,7 @@ end:
 		//MessageBox(NULL, ts, L"t", MB_OK);
 		REG[2] &= ~(0x40);
 		SET_VBLANK();
+		//MessageBox(NULL, L"VBlank", L"t", MB_OK);
 	}
 }
 //调色板共支持64种颜色

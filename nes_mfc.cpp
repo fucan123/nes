@@ -10,6 +10,7 @@
 #include "CCpuMemDlg.h"
 #include "CPpuMemDlg.h"
 #include "CNesInfoDlg.h"
+#include "NES/NES.h"
 #include <iostream>
 
 #pragma comment(lib, "d2d1.lib")
@@ -60,6 +61,7 @@ Cnes_mfcApp::Cnes_mfcApp()
 	//为 CompanyName.ProductName.SubProduct.VersionInformation
 	SetAppID(_T("nes_mfc.AppID.NoVersion"));
 
+	nes = NULL;
 	// TODO: 在此处添加构造代码，
 	// 将所有重要的初始化放置在 InitInstance 中
 }
@@ -109,10 +111,10 @@ BOOL Cnes_mfcApp::InitInstance()
 	// 例如修改为公司或组织名
 	SetRegistryKey(_T("应用程序向导生成的本地应用程序"));
 
-
+	nes = new NES("hdl-u.nes");
 	// 若要创建主窗口，此代码将创建新的框架窗口
 	// 对象，然后将其设置为应用程序的主窗口对象
-	CMainFrame* pFrame = new CMainFrame;
+	CMainFrame* pFrame = new CMainFrame(&nes);
 	if (!pFrame)
 		return FALSE;
 	m_pMainWnd = pFrame;
@@ -124,18 +126,9 @@ BOOL Cnes_mfcApp::InitInstance()
 	// 唯一的一个窗口已初始化，因此显示它并对其进行更新
 	pFrame->ShowWindow(SW_SHOW);
 	pFrame->UpdateWindow();
-
-	try {
-		if (!g_ROM.Open("hdl-u.nes"))
-			throw "文件打开失败";
-	}
-	catch (char* msg) {
-		CString str(msg);
-		::MessageBox(NULL, str, L"错误提示", MB_OK);
-	}
 	
 
-	struct stat st;
+	/*struct stat st;
 	FILE* fp = fopen("cjml.nes", "r");
 	if (!fp) {
 	}
@@ -172,7 +165,7 @@ BOOL Cnes_mfcApp::InitInstance()
 	t.Format(L"%d", header.control1  &0x01);
 	//::MessageBox(NULL, t, L"t", MB_OK);
 	//AfxBeginThread(CPURun, this);
-	//AfxBeginThread(PPURun, this);
+	//AfxBeginThread(PPURun, this);*/
 	return TRUE;
 }
 
@@ -192,14 +185,14 @@ void Cnes_mfcApp::OnDebug()
 	aboutDlg.DoModal();
 	return;*/
 	//IDD_ABOUTBOX;
-	dlgdbg = new CDebugDlg();
+	dlgdbg = new CDebugDlg(nes);
 	((CDebugDlg*)dlgdbg)->Create(IDD_ABOUTBOX);//创建一个非模态对话框    IDD_DIALOG2是我创建的一对话框ID
 	((CDebugDlg*)dlgdbg)->ShowWindow(SW_SHOWNORMAL);//显示非模态对话框
 }
 
 void Cnes_mfcApp::OnCPUMem()
 {
-	dlgcpumem = new CCpuMemDlg();
+	dlgcpumem = new CCpuMemDlg(nes);
 	((CCpuMemDlg*)dlgcpumem)->Create(IDD_DIALOG_CPUMEM);//创建一个非模态对话框    IDD_DIALOG2是我创建的一对话框ID
 	((CCpuMemDlg*)dlgcpumem)->ShowWindow(SW_SHOWNORMAL);//显示非模态对话框
 }
@@ -207,13 +200,13 @@ void Cnes_mfcApp::OnCPUMem()
 
 void Cnes_mfcApp::OnPPUMem()
 {
-	dlgppumem = new CPpuMemDlg();
+	dlgppumem = new CPpuMemDlg(nes);
 	((CCpuMemDlg*)dlgppumem)->Create(IDD_DIALOG_PPUMEM);//创建一个非模态对话框    IDD_DIALOG2是我创建的一对话框ID
 	((CCpuMemDlg*)dlgppumem)->ShowWindow(SW_SHOWNORMAL);//显示非模态对话框
 }
 
 void Cnes_mfcApp::OnNesInfo()
 {
-	CNesInfoDlg dlg;
+	CNesInfoDlg dlg(nes);
 	dlg.DoModal();
 }

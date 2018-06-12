@@ -9,13 +9,13 @@ class CMainFrame : public CFrameWnd
 {
 	
 public:
-	CMainFrame();
+	CMainFrame(NES**);
 protected: 
 	DECLARE_DYNAMIC(CMainFrame)
 
 // ÌØÐÔ
 public:
-
+	NES** nes;
 // ²Ù×÷
 public:
 

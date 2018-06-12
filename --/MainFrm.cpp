@@ -6,8 +6,6 @@
 #include "nes_mfc.h"
 
 #include "MainFrm.h"
-#include "NES/NES.h"
-#include "NES/CPU.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -37,10 +35,9 @@ extern PPU g_PPU;
 
 // CMainFrame 构造/析构
 
-CMainFrame::CMainFrame(NES** p)
+CMainFrame::CMainFrame()
 {
 	// TODO: 在此添加成员初始化代码
-	nes = p;
 }
 
 CMainFrame::~CMainFrame()
@@ -58,7 +55,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		TRACE0("未能创建视图窗口\n");
 		return -1;
 	}
-	m_wndView.nes = *nes;
+
 	/*if (!m_wndToolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_TOP | CBRS_GRIPPER | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
 		!m_wndToolBar.LoadToolBar(IDR_MAINFRAME))
 	{
@@ -132,12 +129,10 @@ UINT CMainFrame::Game(LPVOID param) {
 	SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
 	Sleep(100);
 	CString ts;
-	//ts.Format(L"PC:%x", nes->cpu->R.PC);
+	ts.Format(L"PC:%x", g_CPU.R.PC);
 	//::MessageBox(NULL, ts, L"t", MB_OK);
 	CMainFrame* pFrame = (CMainFrame*)param;
 	::SendMessageA(pFrame->m_wndStatusBar.m_hWnd, SB_SETTEXT, 2, (LPARAM)LPCTSTR(ts));
-
-	NES* nes = *(pFrame->nes);
 	CDC* dc = pFrame->m_wndView.GetDC();
 	CDC dcImage;
 	if (!dcImage.CreateCompatibleDC(dc)) {
@@ -218,7 +213,7 @@ UINT CMainFrame::Game(LPVOID param) {
 	// TODO: 在此处添加消息处理程序代码
 	dcImage.SelectObject(pOldBitmap);
 	return 0;*/
-	//nes->cpu->reset();
+	g_CPU.reset();
 	//一条扫描线时间
 	double line_time = 1.0 / 50.0 / 312.0; //每秒50帧 一帧312条扫描线
 	int line = 0; //第几条扫描线
@@ -238,21 +233,20 @@ UINT CMainFrame::Game(LPVOID param) {
 	imgrect.bottom = 240;
 	
 
-	nes->cpu->images = images;
+	g_CPU.images = images;
 	CString xs;
-	xs.Format(L"thread p:%d", nes->cpu->pause);
+	xs.Format(L"thread p:%d", g_CPU.pause);
 	//pFrame->m_wndStatusBar.SetPaneText(2, L"xxx");
 	//::MessageBox(NULL, xs, L"t", MB_OK);
-	nes->cpu->opnum = 0;
-	nes->cpu->exec_opnum = 0;
-	nes->cpu->exec_opnum =  0x7fffffff;
+	g_CPU.opnum = 0;
+	g_CPU.exec_opnum =  0x7fffffff;
 	while (true) {
-		while (nes->cpu->opnum < nes->cpu->exec_opnum) {
-			//xs.Format(L"thread %d p:%d", nes->cpu->opnum, nes->cpu->pause);
+		while (g_CPU.opnum < g_CPU.exec_opnum) {
+			//xs.Format(L"thread %d p:%d", g_CPU.opnum, g_CPU.pause);
 			//::MessageBox(NULL, xs, L"t", MB_OK);
-			if (nes->cpu->pause && !nes->cpu->step) {
+			if (g_CPU.pause && !g_CPU.step) {
 				CString tt;
-				tt.Format(L"pasue:%d, all num:%d, opnum:%d", nes->cpu->pause, nes->cpu->exec_opnum, nes->cpu->opnum);
+				tt.Format(L"pasue:%d, all num:%d, opnum:%d", g_CPU.pause, g_CPU.exec_opnum, g_CPU.opnum);
 				::MessageBox(NULL, tt, L"title", MB_OK);
 				continue;
 			}
@@ -268,12 +262,12 @@ UINT CMainFrame::Game(LPVOID param) {
 				//xs.Format(L"%d", line);
 				//::SendMessageA(pFrame->m_wndStatusBar.m_hWnd, SB_SETTEXT, 2, (LPARAM)LPCTSTR(xs));
 				if (line == 240) {
-					if (nes->ppu->IS_NMI) {
+					if (g_PPU.IS_NMI) {
 						//CString tt;
-						//tt.Format(L"opcode:%X", nes->cpu->R.PC);
+						//tt.Format(L"opcode:%X", g_CPU.R.PC);
 						//::MessageBox(NULL, tt , L"title", MB_OK);
 						exec_cycles -= 7;
-						nes->cpu->NMI();
+						g_CPU.NMI();
 						exec_cycles -= 7;
 					}
 					HRESULT r;
@@ -296,21 +290,21 @@ UINT CMainFrame::Game(LPVOID param) {
 					}
 					
 				}
-				if (0 && nes->cpu->step) {
-					nes->cpu->exec(1);
+				if (0 && g_CPU.step) {
+					g_CPU.exec(1);
 					CString tt;
-					tt.Format(L"step:%d, all num:%d, opnum:%d", nes->cpu->step, nes->cpu->exec_opnum, nes->cpu->opnum);
+					tt.Format(L"step:%d, all num:%d, opnum:%d", g_CPU.step, g_CPU.exec_opnum, g_CPU.opnum);
 					//::MessageBox(NULL, tt, L"title", MB_OK);
-					//nes->cpu->step = false;
-					//nes->cpu->pause = true;
+					//g_CPU.step = false;
+					//g_CPU.pause = true;
 				}
 				else {
-					int num = nes->cpu->exec(exec_cycles);
+					int num = g_CPU.exec(exec_cycles);
 				}
 
 				//执行cpu指令 113.6825周期
 				if (line < 240) {
-					nes->ppu->scanfLine(line, images);
+					g_PPU.scanfLine(line, images);
 					/*CBitmap bm;
 					bm.CreateBitmap(256, 240, 1, 32, images);
 					BITMAP  bmp;
@@ -360,10 +354,10 @@ UINT CMainFrame::Game(LPVOID param) {
 					line = 0;
 			}
 		}
-		if (nes->cpu->opnum > 0 && nes->cpu->exec_opnum == nes->cpu->opnum) {
+		if (g_CPU.opnum > 0 && g_CPU.exec_opnum == g_CPU.opnum) {
 			//::MessageBox(NULL, L"set 0", L"title", MB_OK);
-			nes->cpu->exec_opnum = 0;
-			nes->cpu->opnum = 0;
+			g_CPU.exec_opnum = 0;
+			g_CPU.opnum = 0;
 		}
 	}
 	return 0;

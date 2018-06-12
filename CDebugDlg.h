@@ -7,7 +7,8 @@
 class CDebugDlg : public CDialogEx
 {
 public:
-	CDebugDlg();
+	NES * nes;
+	CDebugDlg(NES*);
 
 	// 对话框数据
 #ifdef AFX_DESIGN_TIME

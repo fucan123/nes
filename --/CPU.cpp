@@ -2,9 +2,7 @@
 
 #include "../stdafx.h"
 #include "CPU.h"
-#include "MMU.h"
 #include "PPU.h"
-#include "NES.h"
 
 #ifndef CPUCPP
 #define CPUCPP
@@ -44,12 +42,10 @@
 
 extern PPU g_PPU;
 
-CPU::CPU(NES* p) {
-	nes = p;
+CPU::CPU( ) {
 	memset(&R, 0, sizeof(CPU6502)); //所有寄存器初始化清0
 	R.S = 0xff; //堆栈指针指向0xff
 	R.P = Z_FLAG | R_FLAG;
-	STACK = RAM + 0x100;
 	memset(&err, 0, sizeof(err));
 	clist = NULL;
 	lrow = 0;
@@ -66,20 +62,21 @@ void CPU::load(char* m, size_t size, char* p, size_t psize) {
 	memcpy(MEM, m, size);
 	MEM[0x4016] = MEM[0x4017] = 0x40;
 	//桟段为0x100 - 0x1ff
-	STACK = RAM + 0x100;
+	STACK = MEM + 0x100;
 	//memcpy(PPU, p, psize);
 }
 
-void CPU::RESET() {
+void CPU::reset() {
 	for (int i = 0; i < 256; i++) {
 		NF_TABLE[i] = (i & 0x80) ? N_FLAG : 0;
 	}
 	NF_TABLE[0] = Z_FLAG;
 	//REST（开机或复位）会在0xfffc和0xfffd此地址指向的空间寻找指令（0xfffc为低8位，0xfffd为高8位）
 	//word opaddr = MEM[REST_VECTOR] | (MEM[REST_VECTOR + 1] << 8);
-	R.PC = this->ReadW(REST_VECTOR);
-	//CString xs;
-	//xs.Format(L"rest %d p:%d, addr:%04X", opnum, this->pause, opaddr);
+	word opaddr = *((word*)&MEM[REST_VECTOR]);
+	R.PC = opaddr;
+	CString xs;
+	xs.Format(L"rest %d p:%d, addr:%04X", opnum, this->pause, opaddr);
 	//MessageBox(NULL, xs, L"t", MB_OK);
 	//run();
 	//::MessageBox(NULL, pc, L"title", MB_OK);
@@ -100,7 +97,7 @@ void CPU::run(int num) {
 		}
 		lrow = i;
 		//printf("PC:0x%x\n", R.PC);
-		opcode(this->Read(R.PC));
+		opcode(MEM[R.PC]);
 	}
 }
 //执行 request_cycles要执行的周期
@@ -121,7 +118,7 @@ int CPU::exec(int request_cycles) {
 			break;
 		}
 		//opnum++;
-		this->opcode(this->Read(R.PC));
+		this->opcode(MEM[R.PC]);
 		EXEC_CYCLE = 2;
 		request_cycles -= EXEC_CYCLE;
 		TOTAL_CYCLE += EXEC_CYCLE;
@@ -774,8 +771,8 @@ CPU6502_CODE CPU::opcode(byte opcode) {
 byte CPU::value(CPU6502_MODE mode, word* paddr) {
 	err.code = CPU_SUC;
 	word v = 0xff, addr;
-	byte opd  = this->Read(R.PC + 1); //操作数1 [在操作指令的下一个字节]
-	byte opd2 = this->Read(R.PC + 2); //操作数2 [在操作指令的下二个字节]
+	byte opd  = MEM[R.PC + 1]; //操作数1 [在操作指令的下一个字节]
+	byte opd2 = MEM[R.PC + 2]; //操作数2 [在操作指令的下二个字节]
 	asm_str[3] = ' ';
 	char* str = asm_str + 4;
 	char* hstr = hex_str + 3;
@@ -851,10 +848,10 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 #endif
 		//第一个字节为低8位，第二个为高8位
 		if (opd == 0xff) { //6502的$6C指令（间接绝对跳转）有一个BUG，当低位字节是$FF时CPU将不能正确计算有效地址
-			addr = CPU_MEM_BANK[tmp>>13][tmp&0x1FFF] | (CPU_MEM_BANK[tmp>>13][tmp&0x1F00] << 8);
+			addr = MEM[tmp] | (MEM[tmp & 0xff00] << 8);
 		}
 		else {
-			addr = this->ReadW(tmp);
+			addr = MEM[tmp] | (MEM[tmp + 1] << 8);
 		}
 		
 		opsize = 3;
@@ -867,7 +864,7 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 		tmp  = opd + R.X; //0xA0 + X
 		tmp2 = opd + R.X + 1; //0xA0 + X + 1;
 		//第一个字节为低8位，第二个为高8位
-		addr = this->Read(tmp);
+		addr = MEM[tmp] | (MEM[tmp2] << 8);
 #ifdef MDEBUG2
 		sprintf(str, "(0x%02X, X)", opd);
 		sprintf(hstr, "%02X", opd);
@@ -879,7 +876,7 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 	case M_IDA_Y: 
 		//LDA (0xA0), Y
 		//第一个字节为低8位，第二个为高8位
-		addr = this->ReadW(opd);
+		addr = MEM[opd] | ((MEM[opd + 1]) << 8);
 		addr += R.Y;
 #ifdef MDEBUG2
 		sprintf(str, "(0x%02X),Y", opd);
@@ -902,34 +899,33 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 		opsize = 0;
 		break;
 	}
-	if (CPUERR(err.code)) {
-		MessageBox(NULL, L"OP ERROR", L"t", MB_OK);
-	}
-	//MessageBox(NULL, L"OP SUCCES", L"t", MB_OK);
-	//地址0x2000-0x2007为PPU寄存器
-	if (addr >= 0x2000 && addr <= 0x2007) {
-		//MessageBox(NULL, L"CAO", L"t", MB_OK);
-		v = 0;
-		if (asm_str[0] == 'L') {
-			//MessageBox(NULL, L"Read( reg ppu", L"title", MB_OK);
-			v = nes->ppu->readREG(addr & 0x07);
-			if (addr == 0x2002 && v) {
-				//MessageBox(NULL, L"PPU Read(", L"title", MB_OK);
+	if (CPUSUC(err.code)) {
+		//MessageBox(NULL, L"OP SUCCES", L"t", MB_OK);
+		//地址0x2000-0x2007为PPU寄存器
+		if (addr >= 0x2000 && addr <= 0x2007) {
+			//MessageBox(NULL, L"CAO", L"t", MB_OK);
+			v = 0;
+			if (asm_str[0] == 'L') {
+				//MessageBox(NULL, L"read reg ppu", L"title", MB_OK);
+				v = g_PPU.readREG(addr & 0x07);
 			}
 		}
-	}
-	else if (addr >= 0x4000 && addr <= 0x4017) {
-		v = 0;
-		if (asm_str[0] == 'L') {
-			v = this->Read(addr);
+		else if (addr >= 0x4000 && addr <= 0x4017) {
+			v = 0;
+			if (asm_str[0] == 'L') {
+				v = this->read(addr);
+			}
 		}
+		else {
+			//CPU内存段
+			v = MEM[addr];
+		}
+		if (paddr != NULL)
+			*paddr = addr;
 	}
 	else {
-		//CPU内存段
-		v = this->Read(addr);
+		//MessageBox(NULL, L"OP ERROR", L"t", MB_OK);
 	}
-	if (paddr != NULL)
-		*paddr = addr;
 #ifdef MDEBUG2
 	dumpError();
 #endif
@@ -937,40 +933,32 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 }
 
 //读取
-byte CPU::Read(word addr) {
-	//MessageBox(NULL, L"PPU Read(", L"title", MB_OK);
+byte CPU::read(word addr) {
+	//MessageBox(NULL, L"PPU READ", L"title", MB_OK);
 	//地址0x2000-0x2007为PPU寄存器
 	if (addr >= 0x2000 && addr <= 0x2007) {
-		//MessageBox(NULL, L"PPU Read(", L"title", MB_OK);
-		BYTE v = nes->ppu->readREG(addr & 0x07);
-		if (addr == 0x2002 && v) {
-			//MessageBox(NULL, L"PPU Read(", L"title", MB_OK);
-		}
-		return v;
+		MessageBox(NULL, L"PPU READ", L"title", MB_OK);
+		return g_PPU.readREG(addr & 0x07);
 	}
 	else if (addr == 0x4016) {
-		byte index = nes->ppu->HAND_COUNT[0] & 0x07;
-		byte v = nes->ppu->HAND_KEY[0][index];
+		byte index = g_PPU.HAND_COUNT[0] & 0x07;
+		byte v = g_PPU.HAND_KEY[0][index];
 		//CString x;
 		//x.Format(L"HAND_COUNT:%d, v:%d", g_PPU.HAND_COUNT[0], v);
 		//MessageBox(NULL,x, L"title", MB_OK);
-		nes->ppu->HAND_COUNT[0]++;
+		g_PPU.HAND_COUNT[0]++;
 		
 		return v | 0x40;
 	}
 	else if (addr == 0x4017) {
-		byte index = nes->ppu->HAND_COUNT[1] & 0x07;
-		byte v = nes->ppu->HAND_KEY[1][index];
-		nes->ppu->HAND_COUNT[1]++;
+		byte index = g_PPU.HAND_COUNT[1] & 0x07;
+		byte v = g_PPU.HAND_KEY[1][index];
+		g_PPU.HAND_COUNT[1]++;
 		return v | 0x40;
 	}
 	else {
-		return CPU_MEM_BANK[addr>>13][addr&0x1FFF];
+		return MEM[addr & 0xffff];
 	}
-}
-
-WORD CPU::ReadW(WORD addr) {
-	return *((WORD*)&CPU_MEM_BANK[addr>>13][addr&0x1FFF]);
 }
 
 //向地址写入值
@@ -979,7 +967,7 @@ void CPU::write(word addr, byte value) {
 	if (addr >= 0x2000 && addr <= 0x2007) {
 		//CString t;
 		
-		nes->ppu->writeREG(addr & 0x07, value);
+		g_PPU.writeREG(addr & 0x07, value);
 		if (addr == 0x2006 && value == 0x28) {
 			//t.Format(L"asm str:%s", asm_str);
 			//MessageBox(NULL, t, L"title", MB_OK);
@@ -987,29 +975,28 @@ void CPU::write(word addr, byte value) {
 		//MessageBox(NULL, t, L"title", MB_OK);
 	}
 	else if (addr == 0x4014) { //DMA方式复制到精灵RAM
-		addr = value * 0x100;
-		nes->ppu->dmaSRAM(&CPU_MEM_BANK[addr>>13][addr&0x1FFF]);
+		g_PPU.dmaSRAM(&MEM[(value * 0x100) & 0xffff]);
 	}
 	else if (addr == 0x4016) {
 		if (value == 0) {
 
 		}
 		if (value == 1) { //复位
-			nes->ppu->HAND_COUNT[0] = 0;
+			g_PPU.HAND_COUNT[0] = 0;
 		}
-		nes->ppu->HAND[0] = value;
+		g_PPU.HAND[0] = value;
 	}
 	else if (addr == 0x4017) {
 		if (value == 0) {
 
 		}
 		if (value == 1) { //复位
-			nes->ppu->HAND_COUNT[1] = 0;
+			g_PPU.HAND_COUNT[1] = 0;
 		}
-		nes->ppu->HAND[1] = value;
+		g_PPU.HAND[1] = value;
 	}
 	else {
-		CPU_MEM_BANK[addr>>13][addr&0xFFF] = value;
+		MEM[addr] = value;
 	}
 }
 // NMI中断 发生在VBlank期间
@@ -1020,7 +1007,7 @@ void CPU::NMI() {
 	PUSH(R.P);
 	CLR_FLAG(B_FLAG);
 	SET_FLAG(I_FLAG);
-	R.PC = this->ReadW(NMI_VECTOR);
+	R.PC = *((word*)&MEM[NMI_VECTOR]);
 }
 /* ADC (NV----ZC) */
 void CPU::ADC(CPU6502_MODE mode) {
@@ -1341,7 +1328,7 @@ void CPU::BRK() {
 	SET_FLAG(B_FLAG);
 	PUSH(R.P);
 	SET_FLAG(I_FLAG);
-	R.PC = this->Read(IRQ_VECTOR);
+	R.PC = MEM[IRQ_VECTOR] | (MEM[IRQ_VECTOR + 1] << 8);
 }
 // 中断返回
 void CPU::RTI() {
@@ -1551,7 +1538,6 @@ void CPU::BNE() {
 	sprintf(remark, "跳转 Z位为0");
 #endif
 	this->BJMP(!(R.P & Z_FLAG));
-	opsize = 2;
 }
 //Z位为1 跳转
 void CPU::BEQ() {
@@ -1560,7 +1546,6 @@ void CPU::BEQ() {
 	sprintf(remark, "跳转 Z位为1");
 #endif
 	this->BJMP((R.P & Z_FLAG));
-	opsize = 2;
 }
 //N位为0 跳转
 void CPU::BPL() {
@@ -1568,11 +1553,7 @@ void CPU::BPL() {
 #ifdef MDEBUG
 	sprintf(remark, "跳转 N位为0");
 #endif
-	if (R.P & N_FLAG) {
-		//::MessageBox(NULL, L"IS N", L"X", MB_OK);
-	}
 	this->BJMP(!(R.P & N_FLAG));
-	opsize = 2;
 }
 //N位为1 跳转
 void CPU::BMI() {
@@ -1581,7 +1562,6 @@ void CPU::BMI() {
 	sprintf(remark, "跳转 N位为1");
 #endif
 	this->BJMP((R.P & N_FLAG));
-	opsize = 2;
 }
 //V位为0 跳转
 void CPU::BVC() {
@@ -1590,7 +1570,6 @@ void CPU::BVC() {
 	sprintf(remark, "跳转 V位为0");
 #endif
 	this->BJMP(!(R.P & V_FLAG));
-	opsize = 2;
 }
 //v位为1 跳转
 void CPU::BVS() {
@@ -1599,7 +1578,6 @@ void CPU::BVS() {
 	sprintf(remark, "跳转 V位为1");
 #endif
 	this->BJMP((R.P & V_FLAG));
-	opsize = 2;
 }
 //条件跳转
 void CPU::BJMP(bool JMP) {

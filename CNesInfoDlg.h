@@ -7,7 +7,8 @@
 class CNesInfoDlg : public CDialogEx
 {
 public:
-	CNesInfoDlg();
+	NES* nes;
+	CNesInfoDlg(NES*);
 	// 对话框数据
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_ABOUTBOX };

@@ -5,6 +5,7 @@
 #include "stdafx.h"
 #include "nes_mfc.h"
 #include "ChildView.h"
+#include "NES/NES.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -107,7 +108,7 @@ void CChildView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 	}
 
 	if (index < 0x08) {
-		g_PPU.HAND_KEY[0][index] = g_PPU.HAND_KEY[1][index]  = 1;
+		nes->ppu->HAND_KEY[0][index] = nes->ppu->HAND_KEY[1][index]  = 1;
 	}
 	//MessageBox(key);
 }
@@ -151,6 +152,6 @@ void CChildView::OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags)
 	}
 
 	if (index < 0x08) {
-		g_PPU.HAND_KEY[0][index] = g_PPU.HAND_KEY[1][index] = 0;
+		nes->ppu->HAND_KEY[0][index] = nes->ppu->HAND_KEY[1][index] = 0;
 	}
 }
