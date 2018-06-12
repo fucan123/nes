@@ -7,5 +7,4 @@ void Mapper2::RESET() {
 
 void Mapper2::Write(WORD addr, BYTE data) {
 	Set_PRGRom_16K_Bank(4, data);
-
 }

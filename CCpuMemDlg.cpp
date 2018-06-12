@@ -5,8 +5,6 @@
 
 extern int CStringHexToInt(CString str);
 extern CString* explode(wchar_t* separator, CString str, int* count);
-extern CPU g_CPU;
-extern PPU g_PPU;
 
 CCpuMemDlg::CCpuMemDlg(NES* p) : CDialogEx(IDD_DIALOG_CPUMEM)
 {
@@ -16,8 +14,7 @@ CCpuMemDlg::CCpuMemDlg(NES* p) : CDialogEx(IDD_DIALOG_CPUMEM)
 
 BOOL CCpuMemDlg::PreTranslateMessage(MSG* pMsg) {
 	//回车键跳到OnOK函数处理
-	if (0 && pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_ESCAPE) return TRUE;
-	else return CDialog::PreTranslateMessage(pMsg);
+	return CDialog::PreTranslateMessage(pMsg);
 }
 
 BEGIN_MESSAGE_MAP(CCpuMemDlg, CDialogEx)
@@ -40,8 +37,10 @@ BOOL CCpuMemDlg::OnInitDialog()
 }
 
 void CCpuMemDlg::OnCancel() {
+	//MessageBox(L"Cancel!");
 	thread_exit = 1;
-	while (thread_exit != 2);
+	while (thread_exit != 2)
+		Sleep(10);
 	DestroyWindow();
 	delete this;
 }
@@ -65,6 +64,7 @@ UINT CCpuMemDlg::ShowMEM(LPVOID param) {
 	while (true) {
 		if (dlg->thread_exit == 1) {
 			dlg->thread_exit = 2;
+			//::MessageBox(NULL, L"Exit!", L"", MB_OK);
 			goto exit;
 		}
 		CString text = L"CPU内存\r\n";
@@ -95,7 +95,7 @@ UINT CCpuMemDlg::ShowMEM(LPVOID param) {
 
 		//pedit->GetLine;
 		pedit->LineScroll(nVertPos);
-		Sleep(50);
+		Sleep(100);
 	}
 exit:
 	return 0;

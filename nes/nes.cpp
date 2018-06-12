@@ -21,9 +21,7 @@ NES::NES(char* filename) {
 		MMC_INIT();
 		mapper->RESET();
 		cpu->RESET();
-		if (no != 2) {
-			ppu->load(CHRRom, 0x2000, header->Control1 & 0x01);
-		}
+		ppu->load(CHRRom, no == 2 ? 0 : 0x2000, header->Control1 & 0x01);
 	}
 	catch (char* msg) {
 

@@ -942,11 +942,8 @@ byte CPU::Read(word addr) {
 	//µØÖ·0x2000-0x2007ÎªPPU¼Ä´æÆ÷
 	if (addr >= 0x2000 && addr <= 0x2007) {
 		//MessageBox(NULL, L"PPU Read(", L"title", MB_OK);
-		BYTE v = nes->ppu->readREG(addr & 0x07);
-		if (addr == 0x2002 && v) {
-			//MessageBox(NULL, L"PPU Read(", L"title", MB_OK);
-		}
-		return v;
+		//BYTE v = nes->ppu->readREG(addr & 0x07);
+		return 0;
 	}
 	else if (addr == 0x4016) {
 		byte index = nes->ppu->HAND_COUNT[0] & 0x07;
@@ -1007,6 +1004,9 @@ void CPU::write(word addr, byte value) {
 			nes->ppu->HAND_COUNT[1] = 0;
 		}
 		nes->ppu->HAND[1] = value;
+	}
+	else if (addr >= 0x8000) {
+		nes->mapper->Write(addr, value);
 	}
 	else {
 		CPU_MEM_BANK[addr>>13][addr&0xFFF] = value;

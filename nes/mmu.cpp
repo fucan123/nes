@@ -27,8 +27,8 @@ void Set_PRGRom_8K_Bank(BYTE page, BYTE bank) {
 }
 
 void Set_PRGRom_16K_Bank(BYTE page, BYTE bank) {
-	Set_PRGRom_8K_Bank(page, bank * 2 + 0);
-	Set_PRGRom_8K_Bank(page, bank * 2 + 1);
+	Set_PRGRom_8K_Bank(page + 0, bank * 2 + 0);
+	Set_PRGRom_8K_Bank(page + 1, bank * 2 + 1);
 }
 
 void Set_PRGRom_32K_Bank(BYTE bank) {

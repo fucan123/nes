@@ -38,8 +38,10 @@ PPU::PPU(NES* p) {
 }
 
 void PPU::load(BYTE* m, size_t size, byte ntv) {
+	if (size > 0) {
+		memcpy(MEM, m, size);
+	}
 	memset(MEM, 0, 0x8000);
-	memcpy(MEM, m, size);
 	memset(SRAM, 0, 0xff + 1);
 	memset(REG, 0, 8);
 	memset(REG_FLAG, 0, 8);
