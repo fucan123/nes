@@ -245,7 +245,7 @@ UINT CMainFrame::Game(LPVOID param) {
 	//::MessageBox(NULL, xs, L"t", MB_OK);
 	nes->cpu->opnum = 0;
 	nes->cpu->exec_opnum = 0;
-	nes->cpu->exec_opnum =  0x7fffffff;
+	//nes->cpu->exec_opnum =  0x7fffffff;
 	while (true) {
 		while (nes->cpu->opnum < nes->cpu->exec_opnum) {
 			//xs.Format(L"thread %d p:%d", nes->cpu->opnum, nes->cpu->pause);

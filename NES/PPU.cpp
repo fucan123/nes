@@ -38,10 +38,10 @@ PPU::PPU(NES* p) {
 }
 
 void PPU::load(BYTE* m, size_t size, byte ntv) {
+	memset(MEM, 0, 0x8000);
 	if (size > 0) {
 		memcpy(MEM, m, size);
 	}
-	memset(MEM, 0, 0x8000);
 	memset(SRAM, 0, 0xff + 1);
 	memset(REG, 0, 8);
 	memset(REG_FLAG, 0, 8);
@@ -254,6 +254,28 @@ void PPU::scanfLine(byte line, byte images[]) {
 	word line_t = line;
 	int index = line * 256 * 4;
 	if (SCROLL_REG[0]) { //水平滚动
+		if (SCROLL_REG[1] > 239) {
+		}
+		else {
+			line_t += SCROLL_REG[1];
+		}
+
+		if (line_t > 239) {
+			if (N_TABLE_INDEX == 0) {
+				nt_index = 2;
+			}
+			else if (N_TABLE_INDEX == 1) {
+				nt_index = 3;
+			}
+			else if (N_TABLE_INDEX == 2) {
+				nt_index = 0;
+			}
+			else if (N_TABLE_INDEX == 3) {
+				nt_index = 1;
+			}
+			line_t -= 240;
+			//MessageBox(NULL, t, L"t", MB_OK);
+		}
 		//属于画面中哪个画面(属于命名表中几号编号) 一共8行 每行32个
 		byte ln = SCROLL_REG[0] >> 3;
 		word n = (line_t >> 3) * 32 + ln;
@@ -323,6 +345,22 @@ void PPU::scanfLine(byte line, byte images[]) {
 		}
 		else if (N_TABLE_INDEX == 3) {
 			nt_index = 2;
+		}
+		if (line_t > 239) {
+			if (N_TABLE_INDEX == 0) {
+				nt_index = 2;
+			}
+			else if (N_TABLE_INDEX == 1) {
+				nt_index = 3;
+			}
+			else if (N_TABLE_INDEX == 2) {
+				nt_index = 0;
+			}
+			else if (N_TABLE_INDEX == 3) {
+				nt_index = 1;
+			}
+			line_t -= 240;
+			//MessageBox(NULL, t, L"t", MB_OK);
 		}
 		//属于画面中哪个画面(属于命名表中几号编号) 一共8行 每行32个
 		ln = SCROLL_REG[0] >> 3;

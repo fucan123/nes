@@ -17,13 +17,14 @@ NES::NES(char* filename) {
 		}
 		int no = rom->GetMapperNo();
 		NES_HEADER* header = rom->GetHeader();
-
+		MessageBox(NULL, L"x", L"", MB_OK);
 		MMC_INIT();
 		mapper->RESET();
 		cpu->RESET();
 		ppu->load(CHRRom, no == 2 ? 0 : 0x2000, header->Control1 & 0x01);
 	}
 	catch (char* msg) {
-
+		CString str(msg);
+		MessageBox(NULL, str, L"´íÎóÌáÊ¾£¡", MB_OK);
 	}
 }

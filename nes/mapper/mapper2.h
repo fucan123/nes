@@ -4,5 +4,5 @@
 class Mapper2: public Mapper {
 public:
 	void RESET();
-	virtual	void Write(WORD addr, BYTE data);
+	void Write(WORD addr, BYTE data);
 };
