@@ -760,7 +760,8 @@ CPU6502_CODE CPU::opcode(byte opcode) {
 		ADD_CYCLE(4);
 		break;
 	default:
-		sprintf(asm_str, "指令错误");
+		sprintf(asm_str, "指令错误:(%02X)[%04X,%04X]", opcode, R.PC-1, R.PC-2);
+		//R.PC--;
 		break;
 	}
 	//MessageBox(NULL, L"OP CODE END.", L"t", MB_OK);
@@ -867,7 +868,7 @@ byte CPU::value(CPU6502_MODE mode, word* paddr) {
 		tmp  = opd + R.X; //0xA0 + X
 		tmp2 = opd + R.X + 1; //0xA0 + X + 1;
 		//第一个字节为低8位，第二个为高8位
-		addr = this->Read(tmp);
+		addr = this->ReadW(tmp);
 #ifdef MDEBUG2
 		sprintf(str, "(0x%02X, X)", opd);
 		sprintf(hstr, "%02X", opd);

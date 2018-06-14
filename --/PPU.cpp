@@ -1,7 +1,6 @@
 #pragma once
 #include "../stdafx.h"
 #include "PPU.h"
-#include "MMU.h"
 
 #define VBLANK_FLAG 0x80
 #define SET_VBLANK() REG[2] |= VBLANK_FLAG
@@ -10,8 +9,12 @@
 
 PPU::PPU(NES* p) {
 	nes = p;
-	BGC_TABLE = BGPAL;
-	SPR_TABLE = SPPAL;
+	BGA     = MEM + 0x1000;
+	SPRA    = MEM + 0x0000;
+	N_TABLE[0] = N_TABLE[1] = MEM + 0x2000;
+	A_TABLE[0] = A_TABLE[1] = MEM + 0x23C0;
+	BGC_TABLE = MEM + 0x3F00;
+	SPR_TABLE = MEM + 0x3F10;
 	for (int i = 0; i < 960; i++) {
 		byte line = i >> 5; //除以32 每行32个字幕
 		byte n = (i - (line * 32)) >> 2; //每行隔4个字幕增加一
@@ -35,9 +38,9 @@ PPU::PPU(NES* p) {
 }
 
 void PPU::load(BYTE* m, size_t size, byte ntv) {
-	//memset(MEM, 0, 0x8000);
+	memset(MEM, 0, 0x8000);
 	if (size > 0) {
-		//memcpy(MEM, m, size);
+		memcpy(MEM, m, size);
 	}
 	memset(SRAM, 0, 0xff + 1);
 	memset(REG, 0, 8);
@@ -49,21 +52,18 @@ void PPU::load(BYTE* m, size_t size, byte ntv) {
 	//memset(N_TABLE[0], 0x33, 1024);
 	//memset(BGC_TABLE, 33, 16);
 	REG6_ADDR = 0;
-	
-	BGA = PPU_MEM_BANK[4];
-	SPRA = PPU_MEM_BANK[0];
 	N_TABLE_V = ntv;
 	if (N_TABLE_V) { //垂直镜像 
-		N_TABLE[0] = N_TABLE[2] = PPU_MEM_BANK[8];// &MEM[0x2000];
-		N_TABLE[1] = N_TABLE[3] = PPU_MEM_BANK[9];//&MEM[0x2400];
-		A_TABLE[0] = A_TABLE[2] = PPU_MEM_BANK[8] + 0x03C0;//&MEM[0x23C0];
-		A_TABLE[1] = A_TABLE[3] = PPU_MEM_BANK[9] + 0x03C0; //&MEM[0x27C0];
+		N_TABLE[0] = N_TABLE[2] = &MEM[0x2000];
+		N_TABLE[1] = N_TABLE[3] = &MEM[0x2400];
+		A_TABLE[0] = A_TABLE[2] = &MEM[0x23C0];
+		A_TABLE[1] = A_TABLE[3] = &MEM[0x27C0];
 	}
 	else { //水平镜像
-		N_TABLE[0] = N_TABLE[1] = PPU_MEM_BANK[8]; //&MEM[0x2000];
-		N_TABLE[2] = N_TABLE[3] = PPU_MEM_BANK[9]; //&MEM[0x2400];
-		A_TABLE[0] = A_TABLE[1] = PPU_MEM_BANK[8] + 0x03C0; //&MEM[0x23C0];
-		A_TABLE[2] = A_TABLE[3] = PPU_MEM_BANK[9] + 0x03C0; //&MEM[0x27C0];
+		N_TABLE[0] = N_TABLE[1] = &MEM[0x2000];
+		N_TABLE[2] = N_TABLE[3] = &MEM[0x2400];
+		A_TABLE[0] = A_TABLE[1] = &MEM[0x23C0];
+		A_TABLE[2] = A_TABLE[3] = &MEM[0x27C0];
 	}
 }
 //读取寄存器
@@ -92,7 +92,7 @@ byte PPU::readREG(byte addr) {
 			REG7_ADDR = REG6_ADDR;
 			REG_FLAG[7] = 1;
 		}
-		value = this->Read(REG7_ADDR); //读取VRAM内存
+		value = MEM[REG7_ADDR]; //读取VRAM内存
 		if (!IS_REG7_FIRST) { //第一次读的数据无效
 			REG7_ADDR += (REG[0] & 0x04) ? 32 : 1; //第二位决定+32或+1
 			if (IS_SET_REG6) {
@@ -175,12 +175,12 @@ void PPU::writeREG(byte addr, byte value) {
 			}
 			
 			if (value & 0x08) {
-				BGA = PPU_MEM_BANK[0];// PPU_MEM_BANK + 0x0000;
-				SPRA = PPU_MEM_BANK[4];// MEM + 0x1000;
+				BGA = MEM + 0x0000;
+				SPRA = MEM + 0x1000;
 			}
 			if (value & 0x10) {
-				BGA = PPU_MEM_BANK[4];// MEM + 0x1000;
-				SPRA = PPU_MEM_BANK[0];// MEM + 0x0000;
+				BGA = MEM + 0x1000;
+				SPRA = MEM + 0x0000;
 			}
 			if (value & 0x20) {
 				SPR_SIZE = 16;
@@ -193,17 +193,6 @@ void PPU::writeREG(byte addr, byte value) {
 		}
 		break;
 	}
-}
-//读取内存
-BYTE PPU::Read(WORD addr) {
-	if (addr >= 0x3F00 && addr <= 0x3F0F) {
-		return BGPAL[addr & 0x0F];
-	}
-	if (addr >= 0x3F10 && addr <= 0x3F1F) {
-		return SPPAL[addr & 0x0F];
-	}
-
-	return  PPU_MEM_BANK[addr >> 10][addr & 0x03FF];
 }
 //写入内存
 void PPU::writeMEM(word addr, byte value) {
@@ -221,27 +210,16 @@ void PPU::writeMEM(word addr, byte value) {
 		word dim = addr - 0x2C00;
 		*(N_TABLE[3] + dim) = value;
 	}
-	else if (addr >= 0x3F00 && addr <= 0x3F0F) {
-		BGPAL[addr & 0x0F] = value;
-		if (!(addr & 0x0F))
-			BGPAL[0x00] = BGPAL[0x04] = BGPAL[0x08] = BGPAL[0x0C] = value;
-		if (!(addr & 0x03)) // 背景颜色 需要镜像
-			SPPAL[addr & 0x0F] = value;
-		//MEM[addr] = value;
-		//MEM[addr & 0x000F | 0x3F10] = value; //镜像到0x3F1?
+	else if (addr == 0x3F00 || addr == 0x3F04 || addr == 0x3F08 || addr == 0x3F0C) {
+		MEM[addr] = value;
+		MEM[addr & 0x000F | 0x3F10] = value; //镜像到0x3F1?
 	}
-	else if (addr >= 0x3F10 && addr <= 0x3F1F) {
-		SPPAL[addr & 0x0F] = value;
-		if (!(addr & 0x0F))
-			SPPAL[0x00] = SPPAL[0x04] = SPPAL[0x08] = SPPAL[0x0C] = value;
-		if (!(addr & 0x03)) // 背景颜色 需要镜像
-			BGPAL[addr & 0x0F] = value;
-		//MEM[addr] = value;
-		//MEM[addr & 0x000F | 0x3F00] = value; //镜像到0x3F1?
+	else if (addr == 0x3F10 || addr == 0x3F14 || addr == 0x3F18 || addr == 0x3F1C) {
+		MEM[addr] = value;
+		MEM[addr & 0x000F | 0x3F00] = value; //镜像到0x3F1?
 	}
 	else {
-		PPU_MEM_BANK[addr >> 10][addr & 0x03FF] = value;
-		//MEM[addr] = value;
+		MEM[addr] = value;
 	}
 }
 //写入数据到精灵内存
@@ -544,8 +522,7 @@ void PPU::scanfLine(byte line, byte images[]) {
 			byte sta = SRAM[j + 2];
 			byte* ptn = SPRA;
 			if (SPR_SIZE == 16) {
-				WORD ptn_addr = (tn & 0x01) * 0x1000;
-				ptn = &PPU_MEM_BANK[ptn_addr>>10][ptn_addr&0x3FFF];// &MEM[(tn & 0x01) * 0x1000];
+				ptn = &MEM[(tn & 0x01) * 0x1000];
 				if (line < (SRAM[j] - 1 + 8)) {
 					if (tn & 0x01) 
 						tn--;

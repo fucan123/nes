@@ -244,7 +244,7 @@ UINT CMainFrame::Game(LPVOID param) {
 	//pFrame->m_wndStatusBar.SetPaneText(2, L"xxx");
 	//::MessageBox(NULL, xs, L"t", MB_OK);
 	nes->cpu->opnum = 0;
-	nes->cpu->exec_opnum = 0;
+	nes->cpu->exec_opnum = 200000000;
 	//nes->cpu->exec_opnum =  0x7fffffff;
 	while (true) {
 		while (nes->cpu->opnum < nes->cpu->exec_opnum) {

@@ -80,19 +80,23 @@ UINT CPpuMemDlg::ShowMEM(LPVOID param) {
 			text += temp;
 		}
 
+		CString tx;
+		tx.Format(L"%X=%X\r\n", CHRRom, PPU_MEM_BANK[0]);
+		text += tx;
+
 		text += L"字模\r\n";
 		text += L"----   00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F\r\n";
-		for (i = 0x1000; i < 0x2000; i += 16) {
+		for (i = 0x0000; i < 0x2000; i += 16) {
 			CString temp;
 			temp.Format(L"%04X   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
 				i,
-				nes->ppu->MEM[i], nes->ppu->MEM[i + 1], nes->ppu->MEM[i + 2], nes->ppu->MEM[i + 3], nes->ppu->MEM[i + 4],
-				nes->ppu->MEM[i + 5], nes->ppu->MEM[i + 6], nes->ppu->MEM[i + 7], nes->ppu->MEM[i + 8], nes->ppu->MEM[i + 9],
-				nes->ppu->MEM[i + 10], nes->ppu->MEM[i + 11], nes->ppu->MEM[i + 12], nes->ppu->MEM[i + 13], nes->ppu->MEM[i + 14],
-				nes->ppu->MEM[i + 15]);
-			//text += temp;
+				nes->ppu->Read(i), nes->ppu->Read(i + 1), nes->ppu->Read(i + 2), nes->ppu->Read(i + 3), nes->ppu->Read(i + 4),
+				nes->ppu->Read(i + 5), nes->ppu->Read(i + 6), nes->ppu->Read(i + 7), nes->ppu->Read(i + 8), nes->ppu->Read(i + 9),
+				nes->ppu->Read(i + 10), nes->ppu->Read(i + 11), nes->ppu->Read(i + 12), nes->ppu->Read(i + 13), nes->ppu->Read(i + 14),
+				nes->ppu->Read(i + 15));
+			text += temp;
 		}
-
+		
 		CString temp;
 		text += L"调色板\r\n";
 		text += L"----   00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F\r\n";
@@ -109,17 +113,17 @@ UINT CPpuMemDlg::ShowMEM(LPVOID param) {
 		text += temp;
 
 		temp.Format(L"背景   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
-			nes->ppu->MEM[i], nes->ppu->MEM[i + 1], nes->ppu->MEM[i + 2], nes->ppu->MEM[i + 3], nes->ppu->MEM[i + 4],
-			nes->ppu->MEM[i + 5], nes->ppu->MEM[i + 6], nes->ppu->MEM[i + 7], nes->ppu->MEM[i + 8], nes->ppu->MEM[i + 9],
-			nes->ppu->MEM[i + 10], nes->ppu->MEM[i + 11], nes->ppu->MEM[i + 12], nes->ppu->MEM[i + 13], nes->ppu->MEM[i + 14],
-			nes->ppu->MEM[i + 15]);
+			nes->ppu->Read(i), nes->ppu->Read(i + 1), nes->ppu->Read(i + 2), nes->ppu->Read(i + 3), nes->ppu->Read(i + 4),
+			nes->ppu->Read(i + 5), nes->ppu->Read(i + 6), nes->ppu->Read(i + 7), nes->ppu->Read(i + 8), nes->ppu->Read(i + 9),
+			nes->ppu->Read(i + 10), nes->ppu->Read(i + 11), nes->ppu->Read(i + 12), nes->ppu->Read(i + 13), nes->ppu->Read(i + 14),
+			nes->ppu->Read(i + 15));
 		text += temp; 
 		i = 0x3F10;
 		temp.Format(L"精灵   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
-			nes->ppu->MEM[i], nes->ppu->MEM[i + 1], nes->ppu->MEM[i + 2], nes->ppu->MEM[i + 3], nes->ppu->MEM[i + 4],
-			nes->ppu->MEM[i + 5], nes->ppu->MEM[i + 6], nes->ppu->MEM[i + 7], nes->ppu->MEM[i + 8], nes->ppu->MEM[i + 9],
-			nes->ppu->MEM[i + 10], nes->ppu->MEM[i + 11], nes->ppu->MEM[i + 12], nes->ppu->MEM[i + 13], nes->ppu->MEM[i + 14],
-			nes->ppu->MEM[i + 15]);
+			nes->ppu->Read(i), nes->ppu->Read(i + 1), nes->ppu->Read(i + 2), nes->ppu->Read(i + 3), nes->ppu->Read(i + 4),
+			nes->ppu->Read(i + 5), nes->ppu->Read(i + 6), nes->ppu->Read(i + 7), nes->ppu->Read(i + 8), nes->ppu->Read(i + 9),
+			nes->ppu->Read(i + 10), nes->ppu->Read(i + 11), nes->ppu->Read(i + 12), nes->ppu->Read(i + 13), nes->ppu->Read(i + 14),
+			nes->ppu->Read(i + 15));
 		text += temp;
 		text += L"命名表/属性表\r\n";
 		text += L"----   00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F\r\n";
@@ -127,10 +131,10 @@ UINT CPpuMemDlg::ShowMEM(LPVOID param) {
 			CString temp;
 			temp.Format(L"%04X   %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X  %02X\r\n",
 				i,
-				nes->ppu->MEM[i], nes->ppu->MEM[i + 1], nes->ppu->MEM[i + 2], nes->ppu->MEM[i + 3], nes->ppu->MEM[i + 4],
-				nes->ppu->MEM[i + 5], nes->ppu->MEM[i + 6], nes->ppu->MEM[i + 7], nes->ppu->MEM[i + 8], nes->ppu->MEM[i + 9],
-				nes->ppu->MEM[i + 10], nes->ppu->MEM[i + 11], nes->ppu->MEM[i + 12], nes->ppu->MEM[i + 13], nes->ppu->MEM[i + 14],
-				nes->ppu->MEM[i + 15]);
+				nes->ppu->Read(i), nes->ppu->Read(i + 1), nes->ppu->Read(i + 2), nes->ppu->Read(i + 3), nes->ppu->Read(i + 4),
+				nes->ppu->Read(i + 5), nes->ppu->Read(i + 6), nes->ppu->Read(i + 7), nes->ppu->Read(i + 8), nes->ppu->Read(i + 9),
+				nes->ppu->Read(i + 10), nes->ppu->Read(i + 11), nes->ppu->Read(i + 12), nes->ppu->Read(i + 13), nes->ppu->Read(i + 14),
+				nes->ppu->Read(i + 15));
 			text += temp;
 		}
 		int nVertPos = dlg->GetDlgItem(IDC_EDIT_PPUMEM)->GetScrollPos(SB_VERT);

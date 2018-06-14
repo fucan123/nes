@@ -22,7 +22,7 @@ public:
 	byte SCROLL_REG[2];
 
 	//所有PPU内存
-	byte  MEM[0x8000];
+	byte  MEM[0x7fff + 1];
 
 	//精灵[角色]内存
 	byte SRAM[0xff + 1];
@@ -77,8 +77,6 @@ public:
 	byte readREG(byte addr);
 	//写入寄存器
 	void writeREG(byte addr, byte value);
-	//读取内存
-	BYTE Read(WORD addr);
 	//写入内存
 	void writeMEM(word addr, byte value);
 	//写入数据到精灵内存

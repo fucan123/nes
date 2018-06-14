@@ -27,7 +27,8 @@ bool ROM::Open(char* file) {
 
 	PRGRom = rom + sizeof(NES_HEADER);
 	CHRRom = PRGRom + header.PRG_PAGE_SIZE * 0x4000; // PRGRom ÿҳ16KB
-	PRGRom_8K_Size = header.PRG_PAGE_SIZE * 2;
+	PRGRom_8K_Size = header.PRG_PAGE_SIZE * 2; // ÿҳ16K
+	CHRRom_1K_Size = header.CHR_PAGE_Size * 8; // ÿҳ8K
 
 	int fsize = size - 16;
 	int x = rom[size-1];

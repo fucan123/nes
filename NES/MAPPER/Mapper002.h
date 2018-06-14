@@ -1,7 +1,7 @@
 #pragma once
-#include "mapper.h"
+#include "Mapper.h"
 
-class Mapper2: public Mapper {
+class Mapper002: public Mapper {
 public:
 	void RESET();
 	void Write(WORD addr, BYTE data);

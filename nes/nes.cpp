@@ -17,7 +17,7 @@ NES::NES(char* filename) {
 		}
 		int no = rom->GetMapperNo();
 		NES_HEADER* header = rom->GetHeader();
-		MessageBox(NULL, L"x", L"", MB_OK);
+		//MessageBox(NULL, L"x", L"", MB_OK);
 		MMC_INIT();
 		mapper->RESET();
 		cpu->RESET();
