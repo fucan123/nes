@@ -10,7 +10,7 @@ NES::NES(char* filename) {
 			throw "申请ROM内存失败！";
 		if (!rom->Open(filename))
 			throw "游戏文件打开失败！";
-		if (!(mapper = CreateMapper(rom->GetMapperNo()))) {
+		if (!(mapper = CreateMapper(rom->GetMapperNo(), this))) {
 			char str[64];
 			sprintf(str, "不支持的Mapper号(%d)！", rom->GetMapperNo());
 			throw str;

@@ -760,7 +760,9 @@ CPU6502_CODE CPU::opcode(byte opcode) {
 		ADD_CYCLE(4);
 		break;
 	default:
-		sprintf(asm_str, "÷∏¡Ó¥ÌŒÛ:(%02X)[%04X,%04X]", opcode, R.PC-1, R.PC-2);
+		sprintf(asm_str, "÷∏¡Ó¥ÌŒÛ:(%02X)[%04X,%04X,%04X]", opcode, R.PC-1, R.PC-2, R.PC-3);
+		CString err(asm_str);
+		::MessageBox(NULL, err, L"÷∏¡Ó¥ÌŒÛ.", MB_OK);
 		//R.PC--;
 		break;
 	}

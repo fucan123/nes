@@ -245,7 +245,7 @@ UINT CMainFrame::Game(LPVOID param) {
 	//::MessageBox(NULL, xs, L"t", MB_OK);
 	nes->cpu->opnum = 0;
 	nes->cpu->exec_opnum = 200000000;
-	//nes->cpu->exec_opnum =  0x7fffffff;
+	nes->cpu->exec_opnum = 0x7fffffff;
 	while (true) {
 		while (nes->cpu->opnum < nes->cpu->exec_opnum) {
 			//xs.Format(L"thread %d p:%d", nes->cpu->opnum, nes->cpu->pause);
@@ -306,6 +306,9 @@ UINT CMainFrame::Game(LPVOID param) {
 				}
 				else {
 					int num = nes->cpu->exec(exec_cycles);
+					if (nes->cpu->exec_opnum == 0x7fffffff) {
+						nes->cpu->opnum = 0;
+					}
 				}
 
 				//执行cpu指令 113.6825周期
@@ -361,7 +364,7 @@ UINT CMainFrame::Game(LPVOID param) {
 			}
 		}
 		if (nes->cpu->opnum > 0 && nes->cpu->exec_opnum == nes->cpu->opnum) {
-			//::MessageBox(NULL, L"set 0", L"title", MB_OK);
+			::MessageBox(NULL, L"指令完毕！", L"title", MB_OK);
 			nes->cpu->exec_opnum = 0;
 			nes->cpu->opnum = 0;
 		}

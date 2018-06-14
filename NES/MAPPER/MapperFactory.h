@@ -6,4 +6,4 @@
 #include "mapper003.h"
 #include "mapper004.h"
 
-Mapper* CreateMapper(BYTE no);
+Mapper* CreateMapper(BYTE no, NES* p);

@@ -52,7 +52,11 @@ void PPU::load(BYTE* m, size_t size, byte ntv) {
 	
 	BGA = PPU_MEM_BANK[4];
 	SPRA = PPU_MEM_BANK[0];
-	N_TABLE_V = ntv;
+	this->SetMirroring(ntv);
+}
+// 设置镜像模式0-水平, 1-垂直
+void PPU::SetMirroring(byte v) {
+	N_TABLE_V = v;
 	if (N_TABLE_V) { //垂直镜像 
 		N_TABLE[0] = N_TABLE[2] = PPU_MEM_BANK[8];// &MEM[0x2000];
 		N_TABLE[1] = N_TABLE[3] = PPU_MEM_BANK[9];//&MEM[0x2400];

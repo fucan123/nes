@@ -10,6 +10,7 @@
 class CPU;
 class PPU;
 class ROM;
+class Mapper;
 
 class NES {
 public:

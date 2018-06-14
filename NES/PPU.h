@@ -83,6 +83,8 @@ public:
 	void writeMEM(word addr, byte value);
 	//写入数据到精灵内存
 	void dmaSRAM(byte* src);
+	// 设置镜像模式0-水平, 1-垂直
+	void SetMirroring(byte);
 	//绘制背景
 	void getBG(byte images[]);
 	//绘制一条扫描线(分辨率256*240，一共240条) line=要绘制的线编号
