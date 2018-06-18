@@ -5,7 +5,6 @@
 #include "CPU.h"
 #include "PPU.h"
 #include "ROM.h"
-#include "MAPPER/MapperFactory.h"
 
 class CPU;
 class PPU;
@@ -18,8 +17,12 @@ public:
 	PPU*	ppu;
 	ROM*	rom;
 	Mapper*	mapper;
+
+	BYTE    REG[0x17 + 1];
 public:
 	NES(char* filename);
+	BYTE Read(WORD addr);
+	void Write(WORD addr, BYTE value);
 
 	void Exec();
 };

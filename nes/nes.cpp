@@ -1,4 +1,5 @@
 #include "NES.h"
+#include "MAPPER/MapperFactory.h"
 
 NES::NES(char* filename) {
 	try {
@@ -26,5 +27,23 @@ NES::NES(char* filename) {
 	catch (char* msg) {
 		CString str(msg);
 		MessageBox(NULL, str, L"´íÎóÌáÊ¾£¡", MB_OK);
+	}
+}
+
+BYTE NES::Read(WORD addr) {
+	if (addr >= 0x4000 && addr <= 0x4014) {
+		return 0x40;
+	}
+	else if (addr >= 0x4015 && addr <= 0x4017) {
+		return REG[addr & 0x17];
+	}
+	else {
+		return 0;
+	}
+}
+
+void NES::Write(WORD addr, BYTE value) {
+	if (addr >= 0x4000 && addr <= 0x4017) {
+		REG[addr & 0x17] = value;
 	}
 }
