@@ -14,6 +14,7 @@
 #include <iostream>
 
 #pragma comment(lib, "d2d1.lib")
+#pragma comment(lib, "dsound.lib")
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

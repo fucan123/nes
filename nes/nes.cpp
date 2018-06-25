@@ -1,5 +1,6 @@
 #include "NES.h"
 #include "MAPPER/MapperFactory.h"
+#include <dsound.h>
 
 NES::NES(char* filename) {
 	try {
