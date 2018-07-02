@@ -83,8 +83,9 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	/*m_wndToolBar.EnableDocking(CBRS_ALIGN_ANY);
 	EnableDocking(CBRS_ALIGN_ANY);
 	DockControlBar(&m_wndToolBar);*/
-	AfxBeginThread(Sound, this);
 	AfxBeginThread(Game, this);
+	AfxBeginThread(Sound, this);
+	
 
 	return 0;
 }
@@ -137,6 +138,7 @@ BOOL CMainFrame::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO*
 }
 
 UINT CMainFrame::Sound(LPVOID param){
+	Sleep(1000);
 	CMainFrame* p = (CMainFrame*)param;
 
 	LPDIRECTSOUND8 ppDS;
@@ -148,7 +150,7 @@ UINT CMainFrame::Sound(LPVOID param){
 	if (FAILED(hr)) {
 		::MessageBox(NULL, L"创建失败.", L"t", MB_OK);
 	}
-	hr = ppDS->SetCooperativeLevel(p->m_wndView.m_hWnd, DSSCL_PRIORITY);
+	hr = ppDS->SetCooperativeLevel(p->m_hWnd, DSSCL_PRIORITY);
 	if (FAILED(hr)) {
 		::MessageBox(NULL, L"设置级别失败.", L"t", MB_OK);
 	}
@@ -157,7 +159,7 @@ UINT CMainFrame::Sound(LPVOID param){
 	BYTE *pBuffer;
 	DWORD dwSizeRead = 0;
 	CWaveFile* wav = new CWaveFile;
-	hr = wav->Open(L"Wav/1969.wav", &g_wfxInput, WAVEFILE_READ);
+	hr = wav->Open(L"Wav/1969.wav", &g_wfxInput, WAVEFILE_WRITE);
 	CString hrStr;
 	hrStr.Format(L"hr:%d", hr);
 	//::MessageBox(NULL, hrStr, L"T", MB_OK);
@@ -178,14 +180,17 @@ UINT CMainFrame::Sound(LPVOID param){
 
 		memset(&dsbdesc, 0, sizeof(DSBUFFERDESC));
 		dsbdesc.dwSize = sizeof(DSBUFFERDESC);
-		dsbdesc.dwFlags = DSBCAPS_GLOBALFOCUS               //设置主播
+		dsbdesc.dwFlags = DSBCAPS_STATIC;/**DSBCAPS_GLOBALFOCUS               //设置主播
 			| DSBCAPS_CTRLFX
 			| DSBCAPS_CTRLPOSITIONNOTIFY
-			| DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_CTRLFREQUENCY;
+			| DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_CTRLFREQUENCY;*/
 		dsbdesc.dwBufferBytes = dwSizeRead;
 		dsbdesc.lpwfxFormat = &g_wfxInput;
 
 		LPDIRECTSOUNDBUFFER lpdsbStatic;
+		WAVE_FORMAT_PCM;
+		g_wfxInput.wBitsPerSample;
+		g_wfxInput.cbSize;
 		void* xo = &lpdsbStatic;
 		hr = ppDS->CreateSoundBuffer(&dsbdesc, &lpdsbStatic, NULL);
 		if (!FAILED(hr)) {
@@ -220,6 +225,7 @@ UINT CMainFrame::Sound(LPVOID param){
 		}
 
 	}
+	wav->Close();
 	return 0;
 }
 
