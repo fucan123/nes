@@ -5,7 +5,6 @@
 
 #include "stdafx.h"
 #include <d2d1.h> 
-#include <dsound.h>
 #include "g.h"
 #include "NES/NES.h"
 

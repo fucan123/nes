@@ -5,6 +5,7 @@
 #include "MMU.h"
 #include "PPU.h"
 #include "NES.h"
+#include "Mapper/Mapper.h"
 
 #ifndef CPUCPP
 #define CPUCPP
