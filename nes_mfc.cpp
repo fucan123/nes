@@ -16,6 +16,7 @@
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "dsound.lib")
+#pragma comment(lib, "dxguid.lib")
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -113,7 +114,7 @@ BOOL Cnes_mfcApp::InitInstance()
 	// 例如修改为公司或组织名
 	SetRegistryKey(_T("应用程序向导生成的本地应用程序"));
 
-	nes = new NES("hdl-u.nes");
+	nes = new NES("Roms/hdl-u.nes");
 	// 若要创建主窗口，此代码将创建新的框架窗口
 	// 对象，然后将其设置为应用程序的主窗口对象
 	CMainFrame* pFrame = new CMainFrame(&nes);
