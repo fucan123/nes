@@ -4,6 +4,8 @@
 
 #pragma once
 #include "ChildView.h"
+#include <mmsystem.h>
+#include <dsound.h>
 
 class CMainFrame : public CFrameWnd
 {
@@ -31,6 +33,7 @@ public:
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
 #endif
+	static UINT Sound(LPVOID param);
 	static UINT Game(LPVOID param);
 
 protected:  // 控件条嵌入成员

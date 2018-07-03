@@ -5,9 +5,15 @@
 #include "stdafx.h"
 #include "nes_mfc.h"
 
+#include <mmsystem.h>
+#include <dsound.h>
+
 #include "MainFrm.h"
 #include "NES/NES.h"
 #include "NES/CPU.h"
+#include "Wav/WaveFile.h"
+
+
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -78,6 +84,9 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	EnableDocking(CBRS_ALIGN_ANY);
 	DockControlBar(&m_wndToolBar);*/
 	AfxBeginThread(Game, this);
+	AfxBeginThread(Sound, this);
+	
+
 	return 0;
 }
 
@@ -126,6 +135,98 @@ BOOL CMainFrame::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO*
 
 	// 否则，执行默认处理
 	return CFrameWnd::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
+}
+
+UINT CMainFrame::Sound(LPVOID param){
+	Sleep(1000);
+	CMainFrame* p = (CMainFrame*)param;
+
+	LPDIRECTSOUND8 ppDS;
+	WAVEFORMATEX g_wfxInput;
+	DSBUFFERDESC dsbdesc;
+	HRESULT hr;
+
+	hr = DirectSoundCreate8(NULL, &ppDS, NULL);
+	if (FAILED(hr)) {
+		::MessageBox(NULL, L"创建失败.", L"t", MB_OK);
+	}
+	hr = ppDS->SetCooperativeLevel(p->m_hWnd, DSSCL_PRIORITY);
+	if (FAILED(hr)) {
+		::MessageBox(NULL, L"设置级别失败.", L"t", MB_OK);
+	}
+
+
+	BYTE *pBuffer;
+	DWORD dwSizeRead = 0;
+	CWaveFile* wav = new CWaveFile;
+	hr = wav->Open(L"Wav/1969.wav", &g_wfxInput, WAVEFILE_WRITE);
+	CString hrStr;
+	hrStr.Format(L"hr:%d", hr);
+	//::MessageBox(NULL, hrStr, L"T", MB_OK);
+	if (FAILED(hr)) {
+		::MessageBox(NULL, L"打开WAV文件失败.", L"t", MB_OK);
+	}
+	DWORD dwSize = wav->GetSize();
+	pBuffer = new BYTE[dwSize];
+	hr = wav->Read(pBuffer, dwSize, &dwSizeRead);
+	if (FAILED(hr)) {
+		::MessageBox(NULL, L"读取WAV文件失败.", L"t", MB_OK);
+	}
+
+	CString readSize;
+	readSize.Format(L"读取大小:%d, hr:%d", dwSizeRead, hr);
+	//::MessageBox(NULL, readSize, L"T", MB_OK);
+	if (dwSizeRead > 0) {
+
+		memset(&dsbdesc, 0, sizeof(DSBUFFERDESC));
+		dsbdesc.dwSize = sizeof(DSBUFFERDESC);
+		dsbdesc.dwFlags = DSBCAPS_STATIC;/**DSBCAPS_GLOBALFOCUS               //设置主播
+			| DSBCAPS_CTRLFX
+			| DSBCAPS_CTRLPOSITIONNOTIFY
+			| DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_CTRLFREQUENCY;*/
+		dsbdesc.dwBufferBytes = dwSizeRead;
+		dsbdesc.lpwfxFormat = &g_wfxInput;
+
+		LPDIRECTSOUNDBUFFER lpdsbStatic;
+		WAVE_FORMAT_PCM;
+		g_wfxInput.wBitsPerSample;
+		g_wfxInput.cbSize;
+		void* xo = &lpdsbStatic;
+		hr = ppDS->CreateSoundBuffer(&dsbdesc, &lpdsbStatic, NULL);
+		if (!FAILED(hr)) {
+			LPVOID lpvWrite;
+			DWORD dwLength;
+
+			if (DS_OK == lpdsbStatic->Lock(
+				0, // Offset at which to start lock.
+				0, // Size of lock; ignored because of flag.
+				&lpvWrite, // Gets address of first part of lock.
+				&dwLength, // Gets size of first part of lock.
+				NULL, // Address of wraparound not needed. 
+				NULL, // Size of wraparound not needed.
+				DSBLOCK_ENTIREBUFFER)) // Flag.
+			{
+				::MessageBox(NULL, L"...", L"T", MB_OK);
+				memcpy(lpvWrite, pBuffer, dwLength);
+				lpdsbStatic->Unlock(
+					lpvWrite, // Address of lock start.
+					dwLength, // Size of lock.
+					NULL, // No wraparound portion.
+					0); // No wraparound size.
+
+						//lpdsbStatic->SetCurrentPosition(0);
+						//lpdsbStatic->Play(0, 0, 0);
+			}
+		}
+		else {
+			CString t;
+			t.Format(L"LAST hr:%P, %d", dwSizeRead, hr);
+			::MessageBox(NULL, t, L"T", MB_OK);
+		}
+
+	}
+	wav->Close();
+	return 0;
 }
 
 UINT CMainFrame::Game(LPVOID param) {
