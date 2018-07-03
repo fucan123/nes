@@ -4,7 +4,7 @@
 // stdafx.obj 将包含预编译类型信息
 
 #include "stdafx.h"
-#include <d2d1.h> 
+#include <d2d1.h>
 #include <dsound.h>
 #include "g.h"
 #include "NES/NES.h"
