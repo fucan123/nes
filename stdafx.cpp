@@ -8,10 +8,6 @@
 #include "g.h"
 #include "NES/NES.h"
 
-ROM g_ROM;
-CPU g_CPU(NULL);
-PPU g_PPU(NULL);
-
 
 
 

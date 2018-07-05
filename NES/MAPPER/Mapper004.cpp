@@ -1,4 +1,5 @@
 #include "Mapper004.h"
+#include "../PPU.h"
 #include "../NES.h"
 
 void Mapper004::RESET() {

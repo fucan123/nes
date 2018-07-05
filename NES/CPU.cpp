@@ -4,6 +4,7 @@
 #include "CPU.h"
 #include "MMU.h"
 #include "PPU.h"
+#include "APU.h"
 #include "NES.h"
 #include "Mapper/Mapper.h"
 
@@ -123,9 +124,10 @@ int CPU::exec(int request_cycles) {
 		}
 		//opnum++;
 		this->opcode(this->Read(R.PC));
-		EXEC_CYCLE = 2;
 		request_cycles -= EXEC_CYCLE;
 		TOTAL_CYCLE += EXEC_CYCLE;
+
+		nes->apu->Sync_Cycel(EXEC_CYCLE);
 	}
 	return opnum;
 }

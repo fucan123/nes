@@ -1,11 +1,20 @@
+#include "../stdafx.h"
+#include "MMU.h"
+#include "CPU.h"
+#include "PPU.h"
+#include "APU.h"
+#include "ROM.h"
 #include "NES.h"
 #include "MAPPER/MapperFactory.h"
 
 NES::NES(char* filename) {
+	error = 0;
 	try {
 		if (!(cpu = new CPU(this)))
 			throw "ÉêÇëCPUÄÚ´æÊ§°Ü£¡";
 		if (!(ppu = new PPU(this)))
+			throw "ÉêÇëPPUÄÚ´æÊ§°Ü£¡";
+		if (!(apu = new APU(this)))
 			throw "ÉêÇëPPUÄÚ´æÊ§°Ü£¡";
 		if (!(rom = new ROM))
 			throw "ÉêÇëROMÄÚ´æÊ§°Ü£¡";
@@ -25,6 +34,7 @@ NES::NES(char* filename) {
 		ppu->load(CHRRom, no == 2 ? 0 : 0x2000, header->Control1 & 0x01);
 	}
 	catch (char* msg) {
+		error = 1;
 		CString str(msg);
 		MessageBox(NULL, str, L"´íÎóÌáÊ¾£¡", MB_OK);
 	}
@@ -46,4 +56,8 @@ void NES::Write(WORD addr, BYTE value) {
 	if (addr >= 0x4000 && addr <= 0x4017) {
 		REG[addr & 0x17] = value;
 	}
+}
+
+int NES::GetError() {
+	return error;
 }
