@@ -1,5 +1,8 @@
 #pragma once
 
+#define W_IF(var,c,v) { if(c){var=v;} }
+#define W_IF2(var,c,v1,v2) { var=c?v1:v2; }
+
 typedef struct tagNESCONFIG {
 	FLOAT	BaseClock;		// NTSC:21477270.0  PAL:21281364.0
 	FLOAT	CpuClock;		// NTSC: 1789772.5  PAL: 1773447.0

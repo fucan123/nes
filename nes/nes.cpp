@@ -44,7 +44,10 @@ BYTE NES::Read(WORD addr) {
 	if (addr >= 0x4000 && addr <= 0x4014) {
 		return 0x40;
 	}
-	else if (addr >= 0x4015 && addr <= 0x4017) {
+	else if (addr == 0x4015) {
+
+	}
+	else if (addr >= 0x4016 && addr <= 0x4017) {
 		return REG[addr & 0x17];
 	}
 	else {
@@ -54,7 +57,13 @@ BYTE NES::Read(WORD addr) {
 
 void NES::Write(WORD addr, BYTE value) {
 	if (addr >= 0x4000 && addr <= 0x4017) {
-		REG[addr & 0x17] = value;
+		REG[addr & 0x1F] = value;
+
+		if (addr == 0x4015) {
+			for (BYTE i = 0; i < 4; i++) {
+				W_IF(apu->CNT[i].Sound, !(value & (1 << i)), 0);
+			}
+		}
 	}
 }
 
