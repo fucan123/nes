@@ -18,8 +18,8 @@ typedef struct tagNESCONFIG {
 	INT	FrameCycles;		// NTSC:29829.52  PAL:35468.94
 	INT	FrameIrqCycles;		// NTSC:29829.52  PAL:35468.94
 
-	INT	FrameRate;		// NTSC:60(59.94) PAL:50
-	FLOAT	FramePeriod;		// NTSC:16.683    PAL:20.0
+	INT	FrameRate;		    // NTSC:60(59.94) PAL:50
+	FLOAT	FramePeriod;	// NTSC:16.683    PAL:20.0
 } NESCONFIG, *LPNESCONFIG;
 
 class CPU;
