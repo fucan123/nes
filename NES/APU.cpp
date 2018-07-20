@@ -11,9 +11,29 @@ APU::APU(NES* p) {
 }
 
 void APU::Write(WORD addr, BYTE value) {
-	switch (addr & 0x0F)
+	BYTE index = addr & 0x0F;
+	switch (index)
 	{
 	case 0x00:
+	case 0x04:
+	case 0x0C:
+		CNT[index>>2].Volume = value & 0x0F; // 低4位为音量衰减率
+		switch ((value>>6)&0x03) { // 第6，7位为占空周期类型
+		case 0x00:
+			CNT[index >> 2].Empty = 2;
+			break;
+		case 0x01:
+			CNT[index >> 2].Empty = 4;
+			break;
+		case 0x02:
+			CNT[index >> 2].Empty = 8;
+			break;
+		case 0x03:
+			CNT[index >> 2].Empty = 12;
+			break;
+		default:
+			break;
+		}
 		break;
 	case 0x01:
 		break;
@@ -70,6 +90,9 @@ void APU::SetSoundLength(BYTE index, BYTE value) {
 	}
 }
 
+void APU::SetVolume(BYTE index) {
+}
+
 void APU::Sync_Cycel(int cycel) {
 	SUBCNT(CNT[0].Timer, cycel); // 计数器减少, 频率跟CPU频率一样，所以减少CPU运行的实际周期
 	SUBCNT(CNT[1].Timer, cycel); // 计数器减少, 频率跟CPU频率一样，所以减少CPU运行的实际周期
@@ -83,7 +106,7 @@ void APU::SetSoundCycle(INT cycel, BYTE index) {
 		CYCEL.Sound -= frame_cycels;
 		// 第五位或最高位为1是禁止
 		BYTE forbid = 0;
-		W_IF2(forbid, index!=2, nes->REG[index*4]&0x20, nes->REG[0x08]&0x80);
+		W_IF2(forbid, index!=2, nes->REG[index*4]&0x20, nes->REG[2*4]&0x80);
 		if (!forbid && CNT[index].Sound > 0) { // 没有禁止计数
 			CNT[index].Sound--; // 音长计数器-1
 		}

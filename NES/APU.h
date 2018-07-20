@@ -5,9 +5,11 @@ typedef struct S_APU_CYCYE {
 } APU_CYCEL;
 
 typedef struct S_APU_CNT {
-	WORD Timer; // 十一位可编程波长定时器
-	BYTE Sound; // 音长计数器
-	WORD Wave;  // 波长
+	WORD Timer;  // 十一位可编程波长定时器
+	BYTE Sound;  // 音长计数器
+	WORD Wave;   // 波长
+	BYTE Volume; // 音量
+	BYTE Empty;  // 占空周期
 } APU_CNT;
 
 class NES;
@@ -25,6 +27,7 @@ public:
 
 	void Write(WORD addr, BYTE value);
 	void SetSoundLength(BYTE index, BYTE value);
+	void SetVolume(BYTE index);
 	void Sync_Cycel(INT cycel);
 	void SetSoundCycle(INT cycel, BYTE index);
 };
