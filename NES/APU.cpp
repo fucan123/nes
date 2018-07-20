@@ -91,6 +91,7 @@ void APU::SetSoundLength(BYTE index, BYTE value) {
 }
 
 void APU::SetVolume(BYTE index) {
+
 }
 
 void APU::Sync_Cycel(int cycel) {
