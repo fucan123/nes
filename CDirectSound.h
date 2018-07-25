@@ -4,8 +4,10 @@
 #include <dsound.h>
 #include "Wav/WaveFile.h"
 
-#define MAX_AUDIO_BUF 4
+#define MAX_AUDIO_BUF 2
 #define BUFFERNOTIFYSIZE 8192
+
+class NES;
 
 class CDirectSound {
 public:
@@ -22,4 +24,7 @@ public:
 	HANDLE m_event[MAX_AUDIO_BUF];
 public:
 	CDirectSound(HWND hwnd);
+	CDirectSound(HWND hwnd, INT f);
+	void CDirectSoundOld(HWND hwnd);
+	void Play(HWND, NES*);
 };

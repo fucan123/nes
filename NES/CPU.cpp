@@ -989,9 +989,8 @@ void CPU::write(word addr, byte value) {
 		}
 		//MessageBox(NULL, t, L"title", MB_OK);
 	}
-	else if (addr == 0x4014) { //DMA方式复制到精灵RAM
-		addr = value * 0x100;
-		nes->ppu->dmaSRAM(&CPU_MEM_BANK[addr>>13][addr&0x1FFF]);
+	else if (addr >= 0x4000 && addr <= 0x4015) {
+		nes->Write(addr, value);
 	}
 	else if (addr == 0x4016) {
 		if (value == 0) {
@@ -1017,6 +1016,7 @@ void CPU::write(word addr, byte value) {
 	else {
 		CPU_MEM_BANK[addr>>13][addr&0xFFF] = value;
 	}
+	CPU_MEM_BANK[addr >> 13][addr & 0xFFF] = value;
 }
 // NMI中断 发生在VBlank期间
 void CPU::NMI() {

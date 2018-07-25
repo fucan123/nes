@@ -137,9 +137,11 @@ BOOL CMainFrame::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO*
 
 UINT CMainFrame::Sound(LPVOID param){
 	Sleep(1000);
-	CMainFrame* p = (CMainFrame*)param;
-	CDirectSound* sound = new CDirectSound(p->m_hWnd);
-
+	CMainFrame* pFrame = (CMainFrame*)param;
+	NES* nes = *(pFrame->nes);
+	CDirectSound CSound(pFrame->m_hWnd);
+	//CSound->CDirectSoundOld(pFrame->m_hWnd);
+	CSound.Play(pFrame->m_hWnd, nes);
 	return 0;
 }
 
@@ -251,6 +253,8 @@ UINT CMainFrame::Game(LPVOID param) {
 	imgrect.right = 256;
 	imgrect.top = 0;
 	imgrect.bottom = 240;
+
+	//CDirectSound CSound(pFrame->m_hWnd);
 	
 
 	nes->cpu->images = images;
@@ -324,6 +328,7 @@ UINT CMainFrame::Game(LPVOID param) {
 					if (nes->cpu->exec_opnum == 0x7fffffff) {
 						nes->cpu->opnum = 0;
 					}
+					//CSound.Play(nes);
 				}
 
 				//执行cpu指令 113.6825周期

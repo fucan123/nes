@@ -10,6 +10,10 @@
 NES::NES(char* filename) {
 	error = 0;
 	try {
+		nescfg = new NESCONFIG;
+		nescfg->CpuClock = 1773447.0f;
+		nescfg->FrameRate = 50;
+
 		if (!(cpu = new CPU(this)))
 			throw "申请CPU内存失败！";
 		if (!(ppu = new PPU(this)))
@@ -28,6 +32,7 @@ NES::NES(char* filename) {
 		int no = rom->GetMapperNo();
 		NES_HEADER* header = rom->GetHeader();
 		//MessageBox(NULL, L"x", L"", MB_OK);
+
 		MMC_INIT();
 		mapper->RESET();
 		cpu->RESET();
@@ -45,7 +50,7 @@ BYTE NES::Read(WORD addr) {
 		return 0x40;
 	}
 	else if (addr == 0x4015) {
-
+		return REG[0x15];
 	}
 	else if (addr >= 0x4016 && addr <= 0x4017) {
 		return REG[addr & 0x17];
@@ -58,6 +63,13 @@ BYTE NES::Read(WORD addr) {
 void NES::Write(WORD addr, BYTE value) {
 	if (addr >= 0x4000 && addr <= 0x4017) {
 		REG[addr & 0x1F] = value;
+
+		if (addr == 0x4014) { // DMA方式复制到精灵RAM
+			addr = value * 0x100;
+			ppu->dmaSRAM(&CPU_MEM_BANK[addr >> 13][addr & 0x1FFF]);
+		}
+
+		apu->Write(addr, value);
 
 		if (addr == 0x4015) {
 			for (BYTE i = 0; i < 4; i++) {
